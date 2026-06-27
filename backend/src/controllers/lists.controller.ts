@@ -36,7 +36,7 @@ export async function createList(req: Request, res: Response, next: NextFunction
 
 export async function updateList(req: Request, res: Response, next: NextFunction) {
   try {
-    const { id } = req.params;
+    const { id } = req.params as Record<string, string>;
     const { name, color, icon, sortOrder } = req.body;
     const list = await prisma.taskList.update({
       where: { id },
@@ -55,7 +55,7 @@ export async function updateList(req: Request, res: Response, next: NextFunction
 
 export async function deleteList(req: Request, res: Response, next: NextFunction) {
   try {
-    const { id } = req.params;
+    const { id } = req.params as Record<string, string>;
     await prisma.taskList.delete({ where: { id } });
     res.status(204).send();
   } catch (err) {

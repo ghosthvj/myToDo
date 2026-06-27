@@ -12,7 +12,7 @@ export async function getGlobal(_req: Request, res: Response, next: NextFunction
 
 export async function getByList(req: Request, res: Response, next: NextFunction) {
   try {
-    const { id } = req.params;
+    const { id } = req.params as Record<string, string>;
     const stats = await getListStats(id);
     res.json(stats);
   } catch (err) {

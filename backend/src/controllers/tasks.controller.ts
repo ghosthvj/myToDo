@@ -12,7 +12,7 @@ const PRIORITY_ORDER: Record<string, number> = {
 
 export async function getTasksByList(req: Request, res: Response, next: NextFunction) {
   try {
-    const { id } = req.params;
+    const { id } = req.params as Record<string, string>;
     const { sort = 'manualOrder', order = 'asc', status } = req.query as Record<string, string>;
 
     const validSorts = ['manualOrder', 'dueDate', 'createdAt', 'title'];
@@ -43,7 +43,7 @@ export async function getTasksByList(req: Request, res: Response, next: NextFunc
 
 export async function createTask(req: Request, res: Response, next: NextFunction) {
   try {
-    const { id: listId } = req.params;
+    const { id: listId } = req.params as Record<string, string>;
     const { title, description, priority, dueDate, tags } = req.body;
 
     const count = await prisma.task.count({ where: { listId } });
@@ -67,7 +67,7 @@ export async function createTask(req: Request, res: Response, next: NextFunction
 
 export async function updateTask(req: Request, res: Response, next: NextFunction) {
   try {
-    const { id } = req.params;
+    const { id } = req.params as Record<string, string>;
     const { title, description, priority, dueDate, tags, status } = req.body;
 
     const task = await prisma.task.update({
@@ -89,7 +89,7 @@ export async function updateTask(req: Request, res: Response, next: NextFunction
 
 export async function deleteTask(req: Request, res: Response, next: NextFunction) {
   try {
-    const { id } = req.params;
+    const { id } = req.params as Record<string, string>;
     await prisma.task.delete({ where: { id } });
     res.status(204).send();
   } catch (err) {
@@ -99,7 +99,7 @@ export async function deleteTask(req: Request, res: Response, next: NextFunction
 
 export async function toggleTask(req: Request, res: Response, next: NextFunction) {
   try {
-    const { id } = req.params;
+    const { id } = req.params as Record<string, string>;
     const task = await prisma.task.findUniqueOrThrow({ where: { id } });
 
     const isCompleted = task.status === 'COMPLETED';
