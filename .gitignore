@@ -1,0 +1,34 @@
+# Base de datos SQLite local
+sqlite_data/
+
+# Variables de entorno con secretos
+.env
+
+# Dependencias
+node_modules/
+**/node_modules/
+
+# Builds
+dist/
+**/dist/
+build/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Prisma
+backend/prisma/migrations/
+
+# Docker
+.docker/
