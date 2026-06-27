@@ -1,0 +1,28 @@
+services:
+  backend:
+    image: ghcr.io/ghosthvj/todo-backend:${IMAGE_TAG:-latest}
+    restart: unless-stopped
+    volumes:
+      - sqlite_data:/data
+    environment:
+      - DATABASE_URL=file:/data/app.db
+      - PORT=3000
+      - NODE_ENV=production
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/api/stats"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+  frontend:
+    image: ghcr.io/ghosthvj/todo-webui:${IMAGE_TAG:-latest}
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+
+volumes:
+  sqlite_data:
