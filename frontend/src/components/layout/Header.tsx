@@ -35,7 +35,7 @@ export default function Header() {
         )}
         {/* Show brand name with icon only when sidebar is hidden */}
         {!sidebarOpen && !isListView && location.pathname !== '/board' && location.pathname !== '/stats' && (
-          <span className="font-bold text-indigo-600 dark:text-indigo-400">ToDoIt</span>
+          <span className="font-extrabold text-teal-700 dark:text-teal-400 tracking-tight">ToDoIt</span>
         )}
         <h2 className="font-semibold text-gray-800 dark:text-gray-100 truncate">{getTitle()}</h2>
       </div>

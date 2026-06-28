@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 import type { TaskList } from '../../types';
 
 const PRESET_COLORS = [
-  '#6366f1', '#8b5cf6', '#ec4899', '#ef4444',
+  '#0d9488', '#8b5cf6', '#ec4899', '#ef4444',
   '#f97316', '#eab308', '#22c55e', '#14b8a6',
   '#3b82f6', '#64748b',
 ];
@@ -19,7 +19,7 @@ interface Props {
 
 export default function ListFormModal({ open, onClose, editingList }: Props) {
   const [name, setName] = useState('');
-  const [color, setColor] = useState('#6366f1');
+  const [color, setColor] = useState('#0d9488');
   const [nameError, setNameError] = useState('');
   const createList = useCreateList();
   const updateList = useUpdateList();
@@ -31,7 +31,7 @@ export default function ListFormModal({ open, onClose, editingList }: Props) {
         setColor(editingList.color);
       } else {
         setName('');
-        setColor('#6366f1');
+        setColor('#0d9488');
       }
       setNameError('');
     }
@@ -108,7 +108,7 @@ export default function ListFormModal({ open, onClose, editingList }: Props) {
               onChange={(e) => { setName(e.target.value); setNameError(''); }}
               placeholder="Ej: Trabajo, Personal..."
               autoFocus
-              className={`w-full px-3 py-2 text-sm border rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
+              className={`w-full px-3 py-2 text-sm border rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-500 ${
                 nameError ? 'border-red-400' : 'border-gray-300 dark:border-gray-600'
               }`}
             />
