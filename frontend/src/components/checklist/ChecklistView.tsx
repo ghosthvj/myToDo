@@ -205,7 +205,7 @@ interface RowProps {
   item: ChecklistItem;
   isEditing: boolean;
   editText: string;
-  editRef: React.RefObject<HTMLInputElement> | null;
+  editRef: React.RefObject<HTMLInputElement | null> | null;
   onToggle: () => void;
   onDelete: () => void;
   onStartEdit: () => void;
