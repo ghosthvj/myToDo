@@ -2,12 +2,14 @@ import { useState } from 'react';
 import { AnimatePresence } from 'framer-motion';
 import {
   DndContext,
+  DragOverlay,
   closestCenter,
   KeyboardSensor,
   PointerSensor,
   useSensor,
   useSensors,
   DragEndEvent,
+  DragStartEvent,
 } from '@dnd-kit/core';
 import {
   SortableContext,
@@ -29,13 +31,20 @@ export default function BoardColumn({ list }: Props) {
   const reorder = useReorderTasks(list.id);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
+  const [activeTask, setActiveTask] = useState<Task | null>(null);
 
   const sensors = useSensors(
-    useSensor(PointerSensor),
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
 
+  function handleDragStart(event: DragStartEvent) {
+    const task = tasks.find((t) => t.id === event.active.id);
+    if (task) setActiveTask(task);
+  }
+
   function handleDragEnd(event: DragEndEvent) {
+    setActiveTask(null);
     const { active, over } = event;
     if (!over || active.id === over.id) return;
 
@@ -71,7 +80,7 @@ export default function BoardColumn({ list }: Props) {
             Sin tareas pendientes
           </p>
         ) : (
-          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
             <SortableContext items={tasks.map((t) => t.id)} strategy={verticalListSortingStrategy}>
               <AnimatePresence>
                 {tasks.map((task) => (
@@ -85,6 +94,13 @@ export default function BoardColumn({ list }: Props) {
                 ))}
               </AnimatePresence>
             </SortableContext>
+            <DragOverlay dropAnimation={{ duration: 150, easing: 'ease' }}>
+              {activeTask && (
+                <div className="rotate-1 opacity-95 shadow-2xl">
+                  <TaskCard task={activeTask} listId={list.id} draggable={false} onEdit={() => {}} />
+                </div>
+              )}
+            </DragOverlay>
           </DndContext>
         )}
       </div>

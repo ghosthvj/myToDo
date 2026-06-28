@@ -2,12 +2,14 @@ import { useState } from 'react';
 import { AnimatePresence } from 'framer-motion';
 import {
   DndContext,
+  DragOverlay,
   closestCenter,
   KeyboardSensor,
   PointerSensor,
   useSensor,
   useSensors,
   DragEndEvent,
+  DragStartEvent,
 } from '@dnd-kit/core';
 import {
   SortableContext,
@@ -32,15 +34,22 @@ export default function TaskListView({ listId }: Props) {
   const reorder = useReorderTasks(listId);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
+  const [activeTask, setActiveTask] = useState<Task | null>(null);
 
   const isDraggable = sortField === 'manualOrder';
 
   const sensors = useSensors(
-    useSensor(PointerSensor),
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
 
+  function handleDragStart(event: DragStartEvent) {
+    const task = tasks.find((t) => t.id === event.active.id);
+    if (task) setActiveTask(task);
+  }
+
   function handleDragEnd(event: DragEndEvent) {
+    setActiveTask(null);
     const { active, over } = event;
     if (!over || active.id === over.id) return;
 
@@ -90,7 +99,7 @@ export default function TaskListView({ listId }: Props) {
           </p>
         </div>
       ) : (
-        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
           <SortableContext items={tasks.map((t) => t.id)} strategy={verticalListSortingStrategy}>
             <div className="space-y-2">
               <AnimatePresence>
@@ -100,15 +109,19 @@ export default function TaskListView({ listId }: Props) {
                     task={task}
                     listId={listId}
                     draggable={isDraggable}
-                    onEdit={(t) => {
-                      setEditingTask(t);
-                      setModalOpen(true);
-                    }}
+                    onEdit={(t) => { setEditingTask(t); setModalOpen(true); }}
                   />
                 ))}
               </AnimatePresence>
             </div>
           </SortableContext>
+          <DragOverlay dropAnimation={{ duration: 150, easing: 'ease' }}>
+            {activeTask && (
+              <div className="rotate-1 opacity-95 shadow-2xl">
+                <TaskCard task={activeTask} listId={listId} draggable={false} onEdit={() => {}} />
+              </div>
+            )}
+          </DragOverlay>
         </DndContext>
       )}
 
