@@ -76,19 +76,19 @@ export default function Sidebar() {
           !sidebarOpen ? 'md:hidden' : '',
         ].join(' ')}
       >
-        <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center gap-2.5">
+        <div className="px-4 py-5 border-b border-gray-100 dark:border-gray-700/60 flex items-center gap-2.5">
           <AppIcon size={28} />
-          <h1 className="text-lg font-bold text-gray-900 dark:text-gray-100 tracking-tight">ToDoIt</h1>
+          <h1 className="text-xl font-extrabold tracking-tight text-teal-700 dark:text-teal-400">ToDoIt</h1>
         </div>
 
         <nav className="p-3 space-y-1">
           <NavLink
             to="/board"
             className={({ isActive }) =>
-              `flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+              `flex items-center gap-2 py-2 rounded-lg text-sm font-medium transition-colors ${
                 isActive
-                  ? 'bg-indigo-50 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300'
-                  : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+                  ? 'border-l-[3px] border-teal-500 dark:border-teal-400 text-teal-700 dark:text-teal-400 bg-teal-50 dark:bg-teal-900/20 pl-[9px] pr-3'
+                  : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/60 hover:text-gray-700 dark:hover:text-gray-300 px-3'
               }`
             }
           >
@@ -98,10 +98,10 @@ export default function Sidebar() {
           <NavLink
             to="/stats"
             className={({ isActive }) =>
-              `flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+              `flex items-center gap-2 py-2 rounded-lg text-sm font-medium transition-colors ${
                 isActive
-                  ? 'bg-indigo-50 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300'
-                  : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+                  ? 'border-l-[3px] border-teal-500 dark:border-teal-400 text-teal-700 dark:text-teal-400 bg-teal-50 dark:bg-teal-900/20 pl-[9px] pr-3'
+                  : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/60 hover:text-gray-700 dark:hover:text-gray-300 px-3'
               }`
             }
           >
@@ -118,7 +118,7 @@ export default function Sidebar() {
             <button
               type="button"
               onClick={openCreateModal}
-              className="flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/40 transition-colors border border-indigo-200 dark:border-indigo-800"
+              className="flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium text-teal-600 dark:text-teal-400 hover:bg-teal-50 dark:hover:bg-teal-900/30 transition-colors border border-teal-200 dark:border-teal-800/60"
               title="Nueva lista"
             >
               <Plus size={12} />
@@ -135,10 +135,10 @@ export default function Sidebar() {
                 key={list.id}
                 to={`/lists/${list.id}`}
                 className={({ isActive }) =>
-                  `group flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors ${
+                  `group flex items-center gap-2 py-2 rounded-lg text-sm transition-colors ${
                     isActive
-                      ? 'bg-indigo-50 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300'
-                      : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+                      ? 'border-l-[3px] border-teal-500 dark:border-teal-400 text-teal-700 dark:text-teal-400 bg-teal-50 dark:bg-teal-900/20 pl-[9px] pr-3'
+                      : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/60 hover:text-gray-700 dark:hover:text-gray-300 px-3'
                   }`
                 }
               >
@@ -156,7 +156,7 @@ export default function Sidebar() {
                   <button
                     type="button"
                     onClick={(e) => handleEdit(list, e)}
-                    className="p-0.5 rounded hover:text-indigo-600 transition-colors"
+                    className="p-0.5 rounded hover:text-teal-600 transition-colors"
                     title="Editar"
                   >
                     <Pencil size={12} />
@@ -178,7 +178,7 @@ export default function Sidebar() {
             <button
               type="button"
               onClick={openCreateModal}
-              className="w-full flex items-center justify-center gap-2 py-4 text-sm text-gray-400 dark:text-gray-500 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded-lg transition-colors border-2 border-dashed border-gray-200 dark:border-gray-700 mt-1"
+              className="w-full flex items-center justify-center gap-2 py-4 text-sm text-gray-400 dark:text-gray-500 hover:text-teal-600 dark:hover:text-teal-400 hover:bg-teal-50 dark:hover:bg-teal-900/20 rounded-lg transition-colors border-2 border-dashed border-gray-200 dark:border-gray-700 mt-1"
             >
               <Plus size={16} />
               Crear primera lista

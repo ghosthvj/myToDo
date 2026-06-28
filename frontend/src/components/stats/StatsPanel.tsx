@@ -54,7 +54,7 @@ export default function StatsPanel() {
           title="Total tareas"
           value={stats.total}
           icon={<ListTodo size={20} />}
-          color="#6366f1"
+          color="#0d9488"
         />
         <MetricCard
           title="Completadas"

@@ -140,7 +140,7 @@ export default function TaskFormModal({ open, onClose, listId, editingTask }: Pr
               onChange={(e) => { setTitle(e.target.value); setTitleError(''); }}
               placeholder="¿Qué necesitas hacer?"
               autoFocus
-              className={`w-full px-3 py-2 text-sm border rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
+              className={`w-full px-3 py-2 text-sm border rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-500 ${
                 titleError ? 'border-red-400' : 'border-gray-300 dark:border-gray-600'
               }`}
             />
@@ -156,7 +156,7 @@ export default function TaskFormModal({ open, onClose, listId, editingTask }: Pr
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Detalles opcionales..."
               rows={3}
-              className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
+              className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-500 resize-none"
             />
           </div>
 
@@ -168,7 +168,7 @@ export default function TaskFormModal({ open, onClose, listId, editingTask }: Pr
               <select
                 value={priority}
                 onChange={(e) => setPriority(e.target.value as Priority)}
-                className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-teal-500"
               >
                 {PRIORITIES.map((p) => (
                   <option key={p.value} value={p.value}>
@@ -195,7 +195,7 @@ export default function TaskFormModal({ open, onClose, listId, editingTask }: Pr
               value={tagsInput}
               onChange={(e) => setTagsInput(e.target.value)}
               placeholder="trabajo, urgente, reunión..."
-              className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-500"
             />
             <p className="text-xs text-gray-400 mt-1">Separa las etiquetas con comas</p>
           </div>
@@ -211,7 +211,7 @@ export default function TaskFormModal({ open, onClose, listId, editingTask }: Pr
             <button
               type="submit"
               disabled={isPending}
-              className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-colors disabled:opacity-60"
+              className="px-4 py-2 text-sm font-medium text-white bg-teal-600 hover:bg-teal-700 rounded-lg transition-colors disabled:opacity-60"
             >
               {isPending ? 'Guardando...' : editingTask ? 'Guardar cambios' : 'Crear tarea'}
             </button>

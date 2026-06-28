@@ -28,6 +28,7 @@ function formatDueDate(dueDate: string) {
 
 export default function TaskCard({ task, listId, onEdit, draggable = false }: Props) {
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [completing, setCompleting] = useState(false);
   const toggleTask = useToggleTask();
   const deleteTask = useDeleteTask(listId);
 
@@ -47,6 +48,10 @@ export default function TaskCard({ task, listId, onEdit, draggable = false }: Pr
   const dueDateInfo = task.dueDate ? formatDueDate(task.dueDate) : null;
 
   function handleToggle() {
+    if (!isCompleted) {
+      setCompleting(true);
+      setTimeout(() => setCompleting(false), 420);
+    }
     toggleTask.mutate(task.id, {
       onSuccess: (updated) => {
         toast.success(updated.status === 'COMPLETED' ? '¡Tarea completada!' : 'Tarea reabierta');
@@ -82,12 +87,18 @@ export default function TaskCard({ task, listId, onEdit, draggable = false }: Pr
         </div>
       )}
 
-      <input
-        type="checkbox"
-        checked={isCompleted}
-        onChange={handleToggle}
-        className="mt-0.5 h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer flex-shrink-0"
-      />
+      {/* Checkbox with ripple wrapper */}
+      <div className="relative mt-0.5 flex-shrink-0">
+        {completing && (
+          <span className="absolute inset-[-4px] rounded-full task-completing" />
+        )}
+        <input
+          type="checkbox"
+          checked={isCompleted}
+          onChange={handleToggle}
+          className="h-4 w-4 rounded border-gray-300 text-teal-600 focus:ring-teal-500 cursor-pointer"
+        />
+      </div>
 
       <div className="flex-1 min-w-0">
         <p
@@ -128,7 +139,7 @@ export default function TaskCard({ task, listId, onEdit, draggable = false }: Pr
       <div className="flex gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity flex-shrink-0">
         <button
           onClick={() => onEdit(task)}
-          className="p-1 rounded text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/40 transition-colors"
+          className="p-1 rounded text-gray-400 hover:text-teal-600 hover:bg-teal-50 dark:hover:bg-teal-900/40 transition-colors"
           title="Editar"
         >
           <Pencil size={13} />

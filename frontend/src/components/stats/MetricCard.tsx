@@ -7,7 +7,7 @@ interface Props {
   highlight?: boolean;
 }
 
-export default function MetricCard({ title, value, subtitle, icon, color = '#6366f1', highlight }: Props) {
+export default function MetricCard({ title, value, subtitle, icon, color = '#0d9488', highlight }: Props) {
   return (
     <div
       className={`bg-white dark:bg-gray-800 rounded-xl p-5 border shadow-sm ${
@@ -19,7 +19,7 @@ export default function MetricCard({ title, value, subtitle, icon, color = '#636
       <div className="flex items-start justify-between">
         <div>
           <p className="text-sm text-gray-500 dark:text-gray-400">{title}</p>
-          <p className="text-3xl font-bold mt-1" style={{ color }}>
+          <p className="text-4xl font-bold mt-1" style={{ color }}>
             {value}
           </p>
           {subtitle && (
