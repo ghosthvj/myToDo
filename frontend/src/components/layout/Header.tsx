@@ -54,7 +54,7 @@ export default function Header() {
 
       {/* Segunda fila: controles de orden (solo en vista de lista) */}
       {isListView && (
-        <div className="px-4 pb-2">
+        <div className="px-4 pb-2 flex justify-end">
           <SortControls />
         </div>
       )}
