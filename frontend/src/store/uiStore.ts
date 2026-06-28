@@ -9,6 +9,7 @@ interface UIState {
   sortField: SortField;
   sortOrder: SortOrder;
   toggleSidebar: () => void;
+  closeSidebar: () => void;
   toggleDarkMode: () => void;
   setSortField: (field: SortField) => void;
   setSortOrder: (order: SortOrder) => void;
@@ -18,11 +19,12 @@ const savedDark = localStorage.getItem('darkMode') === 'true';
 if (savedDark) document.documentElement.classList.add('dark');
 
 export const useUIStore = create<UIState>((set) => ({
-  sidebarOpen: true,
+  sidebarOpen: window.innerWidth >= 768,
   darkMode: savedDark,
   sortField: 'manualOrder',
   sortOrder: 'asc',
   toggleSidebar: () => set((state) => ({ sidebarOpen: !state.sidebarOpen })),
+  closeSidebar: () => set({ sidebarOpen: false }),
   toggleDarkMode: () =>
     set((state) => {
       const next = !state.darkMode;

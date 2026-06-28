@@ -49,7 +49,7 @@ export default function StatsPanel() {
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-3 gap-4 items-start">
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 items-start">
         <MetricCard
           title="Total tareas"
           value={stats.total}
@@ -77,7 +77,7 @@ export default function StatsPanel() {
         <MetricCard
           title="Vencen pronto"
           value={stats.dueSoon}
-          subtitle="próximos 7 días"
+          
           icon={<CalendarClock size={20} />}
           color="#eab308"
         />

@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { NavLink, useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { LayoutDashboard, Columns3, Plus, Trash2, Pencil } from 'lucide-react';
 import { useTaskLists, useDeleteList } from '../../hooks/useTaskLists';
 import { useUIStore } from '../../store/uiStore';
@@ -8,12 +8,18 @@ import { toast } from 'sonner';
 import type { TaskList } from '../../types';
 
 export default function Sidebar() {
-  const { sidebarOpen } = useUIStore();
+  const { sidebarOpen, closeSidebar } = useUIStore();
   const { data: lists = [] } = useTaskLists();
   const deleteList = useDeleteList();
   const navigate = useNavigate();
+  const location = useLocation();
   const [modalOpen, setModalOpen] = useState(false);
   const [editingList, setEditingList] = useState<TaskList | null>(null);
+
+  // Auto-close on mobile when navigating
+  useEffect(() => {
+    if (window.innerWidth < 768) closeSidebar();
+  }, [location.pathname]);
 
   function openCreateModal() {
     setEditingList(null);
@@ -40,11 +46,28 @@ export default function Sidebar() {
     setModalOpen(true);
   }
 
-  if (!sidebarOpen) return null;
-
   return (
     <>
-      <aside className="h-full w-64 flex-shrink-0 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col overflow-y-auto">
+      {/* Backdrop — mobile only */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black/50 md:hidden"
+          onClick={closeSidebar}
+        />
+      )}
+
+      {/* Sidebar */}
+      <aside
+        className={[
+          'fixed inset-y-0 left-0 z-50 w-64 flex-shrink-0',
+          'bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700',
+          'flex flex-col overflow-y-auto',
+          'transition-transform duration-300 ease-in-out',
+          sidebarOpen ? 'translate-x-0' : '-translate-x-full',
+          'md:relative md:inset-auto md:z-auto md:translate-x-0 md:transition-none',
+          !sidebarOpen ? 'md:hidden' : '',
+        ].join(' ')}
+      >
         <div className="p-4 border-b border-gray-200 dark:border-gray-700">
           <h1 className="text-xl font-bold text-indigo-600 dark:text-indigo-400">TodoApp</h1>
         </div>
