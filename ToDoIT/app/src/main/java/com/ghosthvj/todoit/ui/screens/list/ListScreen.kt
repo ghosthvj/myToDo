@@ -8,6 +8,8 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.zIndex
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -151,13 +153,12 @@ private fun TaskListContent(viewModel: ListViewModel, listId: String, listColor:
                             task = task,
                             listColor = listColor,
                             isDragging = dragState.isDragging(index),
-                            modifier = Modifier.dragHandle(
-                                state = dragState,
-                                index = index,
-                                onDragEnd = {
+                            modifier = Modifier
+                                .zIndex(dragState.zIndex(index))
+                                .graphicsLayer { translationY = dragState.translationY(index) }
+                                .dragGestures(dragState) {
                                     viewModel.reorderTasks(localPending + completed)
-                                }
-                            ),
+                                },
                             onToggle = { viewModel.toggleTask(task.id) },
                             onEdit = { editingTask = task },
                             onDelete = { deletingTask = task },

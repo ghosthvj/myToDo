@@ -8,6 +8,9 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.zIndex
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.CheckBox
@@ -96,11 +99,10 @@ fun BoardScreen(
                         ListCard(
                             list = list,
                             isDragging = dragState.isDragging(index),
-                            modifier = Modifier.dragHandle(
-                                state = dragState,
-                                index = index,
-                                onDragEnd = { appViewModel.reorderLists(localLists) }
-                            ),
+                            modifier = Modifier
+                                .zIndex(dragState.zIndex(index))
+                                .graphicsLayer { translationY = dragState.translationY(index) }
+                                .dragGestures(dragState) { appViewModel.reorderLists(localLists) },
                             onClick = { onNavigateToList(list.id) },
                             onEdit = { editingList = list },
                             onDelete = { deletingList = list }
