@@ -1,21 +1,63 @@
 import { useState } from 'react';
 import { Columns3, Plus } from 'lucide-react';
-import { useTaskLists } from '../../hooks/useTaskLists';
+import {
+  DndContext,
+  DragOverlay,
+  closestCenter,
+  PointerSensor,
+  KeyboardSensor,
+  useSensor,
+  useSensors,
+  DragStartEvent,
+  DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  SortableContext,
+  sortableKeyboardCoordinates,
+  rectSortingStrategy,
+  arrayMove,
+} from '@dnd-kit/sortable';
+import { useQueryClient } from '@tanstack/react-query';
+import { useTaskLists, useReorderLists } from '../../hooks/useTaskLists';
 import ListFormModal from '../lists/ListFormModal';
-import BoardColumn from './BoardColumn';
+import SortableBoardColumn from './SortableBoardColumn';
+import type { TaskList } from '../../types';
 
 export default function BoardView() {
   const { data: lists = [], isLoading } = useTaskLists();
+  const reorderLists = useReorderLists();
+  const qc = useQueryClient();
   const [modalOpen, setModalOpen] = useState(false);
+  const [activeList, setActiveList] = useState<TaskList | null>(null);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
+
+  function handleDragStart(event: DragStartEvent) {
+    const list = lists.find((l) => l.id === event.active.id);
+    if (list) setActiveList(list);
+  }
+
+  function handleDragEnd(event: DragEndEvent) {
+    setActiveList(null);
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+
+    const oldIndex = lists.findIndex((l) => l.id === active.id);
+    const newIndex = lists.findIndex((l) => l.id === over.id);
+    const reordered = arrayMove(lists, oldIndex, newIndex);
+
+    qc.setQueryData(['lists'], reordered);
+    reorderLists.mutate(reordered.map((l, i) => ({ id: l.id, sortOrder: i })));
+  }
 
   if (isLoading) {
     return (
-      <div className="flex gap-4 overflow-x-auto pb-4">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         {[...Array(3)].map((_, i) => (
-          <div
-            key={i}
-            className="min-w-[280px] h-64 bg-gray-100 dark:bg-gray-700 rounded-xl animate-pulse"
-          />
+          <div key={i} className="h-64 bg-gray-100 dark:bg-gray-700 rounded-xl animate-pulse" />
         ))}
       </div>
     );
@@ -41,20 +83,36 @@ export default function BoardView() {
             Crear primera lista
           </button>
         </div>
-
-        <ListFormModal
-          open={modalOpen}
-          onClose={() => setModalOpen(false)}
-        />
+        <ListFormModal open={modalOpen} onClose={() => setModalOpen(false)} />
       </>
     );
   }
 
   return (
-    <div className="grid grid-cols-1 gap-4 pb-4 md:grid-cols-2 md:overflow-y-auto md:h-full">
-      {lists.map((list) => (
-        <BoardColumn key={list.id} list={list} />
-      ))}
-    </div>
+    <DndContext
+      sensors={sensors}
+      collisionDetection={closestCenter}
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
+    >
+      <SortableContext items={lists.map((l) => l.id)} strategy={rectSortingStrategy}>
+        <div className="grid grid-cols-1 gap-4 pb-4 md:grid-cols-2 md:overflow-y-auto md:h-full">
+          {lists.map((list) => (
+            <SortableBoardColumn key={list.id} list={list} />
+          ))}
+        </div>
+      </SortableContext>
+
+      <DragOverlay dropAnimation={{ duration: 150, easing: 'ease' }}>
+        {activeList && (
+          <div className="rotate-1 opacity-90 shadow-2xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 flex items-center gap-2"
+            style={{ borderTopColor: activeList.color, borderTopWidth: '3px' }}
+          >
+            <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: activeList.color }} />
+            <span className="font-medium text-sm text-gray-800 dark:text-gray-100">{activeList.name}</span>
+          </div>
+        )}
+      </DragOverlay>
+    </DndContext>
   );
 }

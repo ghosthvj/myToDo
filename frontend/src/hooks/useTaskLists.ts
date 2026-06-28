@@ -35,3 +35,12 @@ export function useDeleteList() {
     },
   });
 }
+
+export function useReorderLists() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (lists: { id: string; sortOrder: number }[]) =>
+      Promise.all(lists.map(({ id, sortOrder }) => listsApi.update(id, { sortOrder }))),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['lists'] }),
+  });
+}

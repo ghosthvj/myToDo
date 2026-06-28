@@ -17,6 +17,7 @@ import {
   verticalListSortingStrategy,
   arrayMove,
 } from '@dnd-kit/sortable';
+import { GripVertical } from 'lucide-react';
 import { useTasks, useReorderTasks } from '../../hooks/useTasks';
 import TaskCard from '../tasks/TaskCard';
 import TaskFormModal from '../tasks/TaskFormModal';
@@ -24,9 +25,10 @@ import type { Task, TaskList } from '../../types';
 
 interface Props {
   list: TaskList;
+  dragHandleProps?: React.HTMLAttributes<HTMLButtonElement>;
 }
 
-export default function BoardColumn({ list }: Props) {
+export default function BoardColumn({ list, dragHandleProps }: Props) {
   const { data: tasks = [], isLoading } = useTasks(list.id, { status: 'PENDING', sort: 'manualOrder', order: 'asc' });
   const reorder = useReorderTasks(list.id);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
@@ -62,6 +64,14 @@ export default function BoardColumn({ list }: Props) {
         style={{ borderTopColor: list.color, borderTopWidth: '3px' }}
       >
         <div className="flex items-center gap-2">
+          {dragHandleProps && (
+            <button
+              {...dragHandleProps}
+              className="cursor-grab active:cursor-grabbing text-gray-300 dark:text-gray-600 hover:text-gray-400 dark:hover:text-gray-500 transition-colors touch-none"
+            >
+              <GripVertical size={15} />
+            </button>
+          )}
           <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: list.color }} />
           <span className="font-medium text-sm text-gray-800 dark:text-gray-100">{list.name}</span>
         </div>
