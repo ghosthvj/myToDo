@@ -51,7 +51,7 @@ export default function BoardView() {
   }
 
   return (
-    <div className="flex gap-4 overflow-x-auto pb-4 h-full">
+    <div className="flex flex-col gap-4 pb-4 md:flex-row md:overflow-x-auto md:h-full">
       {lists.map((list) => (
         <BoardColumn key={list.id} list={list} />
       ))}

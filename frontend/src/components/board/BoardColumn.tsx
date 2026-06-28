@@ -15,7 +15,7 @@ export default function BoardColumn({ list }: Props) {
   const [modalOpen, setModalOpen] = useState(false);
 
   return (
-    <div className="flex flex-col bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-gray-200 dark:border-gray-700 min-w-[280px] max-w-[320px] flex-shrink-0 h-full">
+    <div className="flex flex-col bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-gray-200 dark:border-gray-700 w-full md:min-w-[280px] md:max-w-[320px] md:flex-shrink-0 md:h-full">
       <div
         className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700 rounded-t-xl"
         style={{ borderTopColor: list.color, borderTopWidth: '3px' }}
@@ -32,7 +32,7 @@ export default function BoardColumn({ list }: Props) {
         </span>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-3 space-y-2">
+      <div className="p-3 space-y-2 md:flex-1 md:overflow-y-auto">
         {isLoading ? (
           [...Array(2)].map((_, i) => (
             <div key={i} className="h-16 bg-gray-100 dark:bg-gray-700 rounded-lg animate-pulse" />
