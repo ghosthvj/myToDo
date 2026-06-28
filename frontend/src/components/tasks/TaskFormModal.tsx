@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
+import { format, addDays } from 'date-fns';
 import { useCreateTask, useUpdateTask } from '../../hooks/useTasks';
 import { toast } from 'sonner';
+import DatePicker from '../ui/DatePicker';
 import type { Task, Priority } from '../../types';
 
 const PRIORITIES: { value: Priority; label: string }[] = [
@@ -42,7 +44,7 @@ export default function TaskFormModal({ open, onClose, listId, editingTask }: Pr
         setTitle('');
         setDescription('');
         setPriority('MEDIUM');
-        setDueDate('');
+        setDueDate(format(addDays(new Date(), 2), 'yyyy-MM-dd'));
         setTagsInput('');
       }
       setTitleError('');
@@ -180,12 +182,7 @@ export default function TaskFormModal({ open, onClose, listId, editingTask }: Pr
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Vencimiento
               </label>
-              <input
-                type="date"
-                value={dueDate}
-                onChange={(e) => setDueDate(e.target.value)}
-                className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              />
+              <DatePicker value={dueDate} onChange={setDueDate} />
             </div>
           </div>
 

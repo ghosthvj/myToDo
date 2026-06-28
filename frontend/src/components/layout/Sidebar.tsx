@@ -4,6 +4,7 @@ import { LayoutDashboard, Columns3, Plus, Trash2, Pencil } from 'lucide-react';
 import { useTaskLists, useDeleteList } from '../../hooks/useTaskLists';
 import { useUIStore } from '../../store/uiStore';
 import ListFormModal from '../lists/ListFormModal';
+import ConfirmDialog from '../ui/ConfirmDialog';
 import { toast } from 'sonner';
 import type { TaskList } from '../../types';
 
@@ -15,6 +16,7 @@ export default function Sidebar() {
   const location = useLocation();
   const [modalOpen, setModalOpen] = useState(false);
   const [editingList, setEditingList] = useState<TaskList | null>(null);
+  const [deletingList, setDeletingList] = useState<TaskList | null>(null);
 
   // Auto-close on mobile when navigating
   useEffect(() => {
@@ -29,10 +31,15 @@ export default function Sidebar() {
   function handleDelete(list: TaskList, e: React.MouseEvent) {
     e.preventDefault();
     e.stopPropagation();
-    if (!window.confirm(`¿Eliminar la lista "${list.name}" y todas sus tareas?`)) return;
-    deleteList.mutate(list.id, {
+    setDeletingList(list);
+  }
+
+  function confirmDelete() {
+    if (!deletingList) return;
+    deleteList.mutate(deletingList.id, {
       onSuccess: () => {
         toast.success('Lista eliminada');
+        setDeletingList(null);
         navigate('/board');
       },
       onError: () => toast.error('Error al eliminar la lista'),
@@ -185,6 +192,15 @@ export default function Sidebar() {
           setEditingList(null);
         }}
         editingList={editingList}
+      />
+
+      <ConfirmDialog
+        open={!!deletingList}
+        title="Eliminar lista"
+        message={`¿Eliminar la lista "${deletingList?.name}" y todas sus tareas? Esta acción no se puede deshacer.`}
+        confirmLabel="Eliminar"
+        onConfirm={confirmDelete}
+        onCancel={() => setDeletingList(null)}
       />
     </>
   );
