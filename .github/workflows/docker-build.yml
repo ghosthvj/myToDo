@@ -46,6 +46,17 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
 
+      - name: Set todo-backend visibility to public
+        run: |
+          gh api \
+            --method PATCH \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            /user/packages/container/todo-backend \
+            -f visibility=public
+        env:
+          GH_TOKEN: ${{ secrets.GH_PACKAGES_TOKEN }}
+
   build-frontend:
     name: Build todo-webui
     runs-on: ubuntu-latest
@@ -81,3 +92,14 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+
+      - name: Set todo-webui visibility to public
+        run: |
+          gh api \
+            --method PATCH \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            /user/packages/container/todo-webui \
+            -f visibility=public
+        env:
+          GH_TOKEN: ${{ secrets.GH_PACKAGES_TOKEN }}
