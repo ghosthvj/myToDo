@@ -218,7 +218,7 @@ private fun ServerUrlDialog(
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
-                    "Dirección base del servidor. Puede ser una IP con puerto (http://192.168.1.x:5173) o un nombre DNS con proxy inverso (https://todoit.ejemplo.com).",
+                    "Dirección del servidor de sincronización.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -226,7 +226,7 @@ private fun ServerUrlDialog(
                     value = url,
                     onValueChange = { url = it; error = false },
                     label = { Text("URL del servidor") },
-                    placeholder = { Text("http://192.168.1.x:5173") },
+                    placeholder = { Text("https://") },
                     isError = error,
                     supportingText = if (error) ({ Text("La URL debe empezar por http:// o https://") }) else null,
                     singleLine = true,
