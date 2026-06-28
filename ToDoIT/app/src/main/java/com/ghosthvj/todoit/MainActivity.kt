@@ -218,7 +218,7 @@ private fun ServerUrlDialog(
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
-                    "Introduce la URL del backend. En emulador usa 10.0.2.2; en dispositivo físico usa la IP local de tu PC.",
+                    "Dirección base del servidor. Puede ser una IP con puerto (http://192.168.1.x:5173) o un nombre DNS con proxy inverso (https://todoit.ejemplo.com).",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -226,9 +226,9 @@ private fun ServerUrlDialog(
                     value = url,
                     onValueChange = { url = it; error = false },
                     label = { Text("URL del servidor") },
-                    placeholder = { Text("http://192.168.1.x:3000") },
+                    placeholder = { Text("http://192.168.1.x:5173") },
                     isError = error,
-                    supportingText = if (error) ({ Text("Introduce una URL válida (http://...)") }) else null,
+                    supportingText = if (error) ({ Text("La URL debe empezar por http:// o https://") }) else null,
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(10.dp)
