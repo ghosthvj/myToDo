@@ -45,7 +45,7 @@ export default function Header() {
 
         <button
           onClick={toggleDarkMode}
-          className="p-1.5 rounded-lg text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+          className="hidden md:flex p-1.5 rounded-lg text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
           title="Cambiar tema"
         >
           {darkMode ? <Sun size={18} /> : <Moon size={18} />}

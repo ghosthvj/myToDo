@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Columns3, Plus, Trash2, Pencil } from 'lucide-react';
+import { LayoutDashboard, Columns3, Plus, Trash2, Pencil, Sun, Moon } from 'lucide-react';
 import { useTaskLists, useDeleteList } from '../../hooks/useTaskLists';
 import { useUIStore } from '../../store/uiStore';
 import ListFormModal from '../lists/ListFormModal';
@@ -9,7 +9,7 @@ import { toast } from 'sonner';
 import type { TaskList } from '../../types';
 
 export default function Sidebar() {
-  const { sidebarOpen, closeSidebar } = useUIStore();
+  const { sidebarOpen, closeSidebar, darkMode, toggleDarkMode } = useUIStore();
   const { data: lists = [] } = useTaskLists();
   const deleteList = useDeleteList();
   const navigate = useNavigate();
@@ -125,7 +125,7 @@ export default function Sidebar() {
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto px-3 pb-3 space-y-0.5">
+        <div className="flex-1 overflow-y-auto px-3 pb-1 space-y-0.5">
           {lists.map((list) => {
             const pending = list.tasks?.length ?? 0;
             return (
@@ -182,6 +182,16 @@ export default function Sidebar() {
               Crear primera lista
             </button>
           )}
+        </div>
+        {/* Dark mode toggle — mobile only */}
+        <div className="md:hidden px-3 py-3 border-t border-gray-200 dark:border-gray-700">
+          <button
+            onClick={toggleDarkMode}
+            className="flex items-center gap-3 w-full px-3 py-2 rounded-lg text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+          >
+            {darkMode ? <Sun size={16} /> : <Moon size={16} />}
+            {darkMode ? 'Modo claro' : 'Modo oscuro'}
+          </button>
         </div>
       </aside>
 
