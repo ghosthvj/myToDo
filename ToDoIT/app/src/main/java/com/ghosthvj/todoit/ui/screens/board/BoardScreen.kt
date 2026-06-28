@@ -8,24 +8,20 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.unit.IntOffset
-import androidx.compose.ui.zIndex
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.CheckBox
 import androidx.compose.material.icons.outlined.List
 import androidx.compose.material3.*
-import androidx.compose.material3.pulltorefresh.PullToRefreshContainer
-import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.zIndex
 import com.ghosthvj.todoit.data.model.TaskList
 import com.ghosthvj.todoit.ui.AppViewModel
 import com.ghosthvj.todoit.ui.components.*
@@ -43,7 +39,7 @@ fun BoardScreen(
     var localLists by remember { mutableStateOf(lists) }
     LaunchedEffect(lists) { localLists = lists }
 
-    var showCreateDialog by remember { mutableStateOf(false) }
+    var showCreateDialog by remember { mutableStateOf<Boolean>(false) }
     var editingList by remember { mutableStateOf<TaskList?>(null) }
     var deletingList by remember { mutableStateOf<TaskList?>(null) }
     val snackbarHostState = remember { SnackbarHostState() }
@@ -52,19 +48,9 @@ fun BoardScreen(
         error?.let { snackbarHostState.showSnackbar(it); appViewModel.clearError() }
     }
 
-    // Drag-to-reorder state
     val lazyListState = rememberLazyListState()
     val dragState = rememberDragDropState(lazyListState) { from, to ->
         localLists = localLists.toMutableList().apply { add(to, removeAt(from)) }
-    }
-
-    // Pull-to-refresh
-    val pullState = rememberPullToRefreshState()
-    LaunchedEffect(pullState.isRefreshing) {
-        if (pullState.isRefreshing) appViewModel.loadLists()
-    }
-    LaunchedEffect(isLoading) {
-        if (!isLoading && pullState.isRefreshing) pullState.endRefresh()
     }
 
     Scaffold(
@@ -79,12 +65,15 @@ fun BoardScreen(
             }
         }
     ) { padding ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .nestedScroll(pullState.nestedScrollConnection)
-        ) {
+        Column(modifier = Modifier.fillMaxSize().padding(padding)) {
+            // Loading bar
+            if (isLoading) {
+                LinearProgressIndicator(
+                    modifier = Modifier.fillMaxWidth(),
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+
             when {
                 !isLoading && localLists.isEmpty() ->
                     EmptyBoard(onCreateList = { showCreateDialog = true })
@@ -111,12 +100,6 @@ fun BoardScreen(
                     item { Spacer(Modifier.height(72.dp)) }
                 }
             }
-
-            PullToRefreshContainer(
-                state = pullState,
-                modifier = Modifier.align(Alignment.TopCenter),
-                contentColor = MaterialTheme.colorScheme.primary
-            )
         }
     }
 
@@ -159,14 +142,11 @@ private fun ListCard(
     var menuExpanded by remember { mutableStateOf(false) }
 
     Card(
-        modifier = modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick),
+        modifier = modifier.fillMaxWidth().clickable(onClick = onClick),
         shape = RoundedCornerShape(12.dp),
         elevation = CardDefaults.cardElevation(if (isDragging) 8.dp else 1.dp),
         colors = CardDefaults.cardColors(
-            containerColor = if (isDragging)
-                MaterialTheme.colorScheme.surfaceVariant
+            containerColor = if (isDragging) MaterialTheme.colorScheme.surfaceVariant
             else MaterialTheme.colorScheme.surface
         )
     ) {
@@ -176,7 +156,6 @@ private fun ListCard(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 14.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Drag handle indicator
                 Icon(
                     Icons.Default.DragHandle,
                     contentDescription = "Mantener pulsado para reordenar",
@@ -184,14 +163,12 @@ private fun ListCard(
                     modifier = Modifier.size(20.dp)
                 )
                 Spacer(Modifier.width(8.dp))
-
                 if (list.type == "CHECKLIST") {
                     Icon(Icons.Outlined.CheckBox, null, tint = listColor, modifier = Modifier.size(16.dp))
                 } else {
                     Box(modifier = Modifier.size(10.dp).clip(CircleShape).background(listColor))
                 }
                 Spacer(Modifier.width(10.dp))
-
                 Column(modifier = Modifier.weight(1f)) {
                     Text(list.name, fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
                     Text(
@@ -199,7 +176,6 @@ private fun ListCard(
                         fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
-
                 if (list.pendingCount > 0) {
                     Surface(shape = CircleShape, color = MaterialTheme.colorScheme.surfaceVariant) {
                         Text(
@@ -211,7 +187,6 @@ private fun ListCard(
                     }
                     Spacer(Modifier.width(4.dp))
                 }
-
                 Box {
                     IconButton(onClick = { menuExpanded = true }, modifier = Modifier.size(36.dp)) {
                         Icon(Icons.Default.MoreVert, null,
@@ -231,7 +206,6 @@ private fun ListCard(
                         )
                     }
                 }
-
                 Icon(Icons.Default.ChevronRight, null,
                     tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
                     modifier = Modifier.size(20.dp))
@@ -247,8 +221,7 @@ private fun EmptyBoard(onCreateList: () -> Unit) {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        Icon(Icons.Outlined.List, null,
-            modifier = Modifier.size(56.dp),
+        Icon(Icons.Outlined.List, null, modifier = Modifier.size(56.dp),
             tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f))
         Spacer(Modifier.height(16.dp))
         Text("No hay listas creadas", style = MaterialTheme.typography.titleMedium,

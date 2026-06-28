@@ -8,29 +8,26 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.zIndex
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material3.*
-import androidx.compose.material3.pulltorefresh.PullToRefreshContainer
-import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.zIndex
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.ghosthvj.todoit.data.model.ChecklistItem
 import com.ghosthvj.todoit.data.model.Task
@@ -42,15 +39,9 @@ import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ListScreen(
-    listId: String,
-    list: TaskList?,
-    onBack: () -> Unit
-) {
-    val viewModel: ListViewModel = viewModel(
-        key = listId,
-        factory = ListViewModelFactory(listId)
-    )
+fun ListScreen(listId: String, list: TaskList?, onBack: () -> Unit) {
+    val viewModel: ListViewModel = viewModel(key = listId, factory = ListViewModelFactory(listId))
+    val isLoading by viewModel.isLoading.collectAsState()
     val error by viewModel.error.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
 
@@ -63,23 +54,39 @@ fun ListScreen(
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
-            TopAppBar(
-                title = {
-                    Row(verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Box(modifier = Modifier.size(10.dp).clip(CircleShape).background(listColor))
-                        Text(list?.name ?: "", fontWeight = FontWeight.SemiBold)
-                    }
-                },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Volver")
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface
+            Column {
+                TopAppBar(
+                    title = {
+                        Row(verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Box(modifier = Modifier.size(10.dp).clip(CircleShape).background(listColor))
+                            Text(list?.name ?: "", fontWeight = FontWeight.SemiBold)
+                        }
+                    },
+                    navigationIcon = {
+                        IconButton(onClick = onBack) {
+                            Icon(Icons.Default.ArrowBack, contentDescription = "Volver")
+                        }
+                    },
+                    actions = {
+                        IconButton(onClick = {
+                            if (list?.type == "CHECKLIST") viewModel.loadChecklistItems()
+                            else viewModel.loadTasks()
+                        }) {
+                            Icon(Icons.Default.Refresh, contentDescription = "Actualizar",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.surface)
                 )
-            )
+                if (isLoading) {
+                    LinearProgressIndicator(
+                        modifier = Modifier.fillMaxWidth(),
+                        color = listColor
+                    )
+                }
+            }
         }
     ) { padding ->
         Box(modifier = Modifier.fillMaxSize().padding(padding)) {
@@ -93,7 +100,6 @@ fun ListScreen(
 
 // ── Task list ─────────────────────────────────────────────────────────────────
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun TaskListContent(viewModel: ListViewModel, listId: String, listColor: Color) {
     val tasks by viewModel.tasks.collectAsState()
@@ -113,95 +119,66 @@ private fun TaskListContent(viewModel: ListViewModel, listId: String, listColor:
     var localPending by remember { mutableStateOf(pending) }
     LaunchedEffect(pending) { localPending = pending }
 
-    // Pull-to-refresh
-    val pullState = rememberPullToRefreshState()
-    LaunchedEffect(pullState.isRefreshing) {
-        if (pullState.isRefreshing) viewModel.loadTasks()
-    }
-    LaunchedEffect(isLoading) {
-        if (!isLoading && pullState.isRefreshing) pullState.endRefresh()
-    }
-
-    // Drag-to-reorder
     val lazyListState = rememberLazyListState()
     val dragState = rememberDragDropState(lazyListState) { from, to ->
         localPending = localPending.toMutableList().apply { add(to, removeAt(from)) }
     }
 
     Box(Modifier.fillMaxSize()) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .nestedScroll(pullState.nestedScrollConnection)
-        ) {
-            when {
-                isLoading && tasks.isEmpty() -> CircularProgressIndicator(
-                    modifier = Modifier.align(Alignment.Center),
-                    color = listColor
-                )
-                tasks.isEmpty() -> EmptyTaskList(listColor = listColor, onAdd = { showAddTask = true })
-                else -> LazyColumn(
-                    state = lazyListState,
-                    contentPadding = PaddingValues(
-                        start = 16.dp, end = 16.dp, top = 8.dp, bottom = 96.dp
-                    ),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier.fillMaxSize()
-                ) {
-                    itemsIndexed(localPending, key = { _, t -> t.id }) { index, task ->
-                        TaskCard(
-                            task = task,
-                            listColor = listColor,
-                            isDragging = dragState.isDragging(index),
-                            modifier = Modifier
-                                .zIndex(dragState.zIndex(index))
-                                .graphicsLayer { translationY = dragState.translationY(index) }
-                                .dragGestures(dragState) {
-                                    viewModel.reorderTasks(localPending + completed)
-                                },
-                            onToggle = { viewModel.toggleTask(task.id) },
-                            onEdit = { editingTask = task },
-                            onDelete = { deletingTask = task },
-                            onClick = { viewingTask = task }
-                        )
-                    }
+        when {
+            isLoading && tasks.isEmpty() ->
+                CircularProgressIndicator(modifier = Modifier.align(Alignment.Center), color = listColor)
 
-                    if (completed.isNotEmpty()) {
-                        item {
-                            TextButton(
-                                onClick = { completedExpanded = !completedExpanded },
-                                contentPadding = PaddingValues(horizontal = 4.dp)
-                            ) {
-                                Icon(
-                                    if (completedExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                                    null, modifier = Modifier.size(16.dp)
-                                )
-                                Spacer(Modifier.width(4.dp))
-                                Text("${completed.size} completada${if (completed.size != 1) "s" else ""}",
-                                    style = MaterialTheme.typography.bodySmall)
-                            }
+            tasks.isEmpty() ->
+                EmptyTaskList(listColor = listColor, onAdd = { showAddTask = true })
+
+            else -> LazyColumn(
+                state = lazyListState,
+                contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 96.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.fillMaxSize()
+            ) {
+                itemsIndexed(localPending, key = { _, t -> t.id }) { index, task ->
+                    TaskCard(
+                        task = task, listColor = listColor,
+                        isDragging = dragState.isDragging(index),
+                        modifier = Modifier
+                            .zIndex(dragState.zIndex(index))
+                            .graphicsLayer { translationY = dragState.translationY(index) }
+                            .dragGestures(dragState) {
+                                viewModel.reorderTasks(localPending + completed)
+                            },
+                        onToggle = { viewModel.toggleTask(task.id) },
+                        onEdit = { editingTask = task },
+                        onDelete = { deletingTask = task },
+                        onClick = { viewingTask = task }
+                    )
+                }
+                if (completed.isNotEmpty()) {
+                    item {
+                        TextButton(
+                            onClick = { completedExpanded = !completedExpanded },
+                            contentPadding = PaddingValues(horizontal = 4.dp)
+                        ) {
+                            Icon(if (completedExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                                null, modifier = Modifier.size(16.dp))
+                            Spacer(Modifier.width(4.dp))
+                            Text("${completed.size} completada${if (completed.size != 1) "s" else ""}",
+                                style = MaterialTheme.typography.bodySmall)
                         }
-                        if (completedExpanded) {
-                            items(completed, key = { "done_${it.id}" }) { task ->
-                                TaskCard(
-                                    task = task, listColor = listColor, isDragging = false,
-                                    modifier = Modifier,
-                                    onToggle = { viewModel.toggleTask(task.id) },
-                                    onEdit = { editingTask = task },
-                                    onDelete = { deletingTask = task },
-                                    onClick = { viewingTask = task }
-                                )
-                            }
+                    }
+                    if (completedExpanded) {
+                        items(completed, key = { "done_${it.id}" }) { task ->
+                            TaskCard(task = task, listColor = listColor, isDragging = false,
+                                modifier = Modifier,
+                                onToggle = { viewModel.toggleTask(task.id) },
+                                onEdit = { editingTask = task },
+                                onDelete = { deletingTask = task },
+                                onClick = { viewingTask = task })
                         }
                     }
                 }
             }
-
-            PullToRefreshContainer(
-                state = pullState,
-                modifier = Modifier.align(Alignment.TopCenter),
-                contentColor = listColor
-            )
         }
 
         ExtendedFloatingActionButton(
@@ -216,13 +193,10 @@ private fun TaskListContent(viewModel: ListViewModel, listId: String, listColor:
     }
 
     if (showAddTask) {
-        TaskFormDialog(
-            onDismiss = { showAddTask = false },
-            onSave = { data ->
-                viewModel.createTask(data.title, data.description.ifBlank { null },
-                    data.priority, data.dueDate, data.tags)
-            }
-        )
+        TaskFormDialog(onDismiss = { showAddTask = false }, onSave = { data ->
+            viewModel.createTask(data.title, data.description.ifBlank { null },
+                data.priority, data.dueDate, data.tags)
+        })
     }
     editingTask?.let { task ->
         TaskFormDialog(editingTask = task, onDismiss = { editingTask = null }, onSave = { data ->
@@ -238,12 +212,9 @@ private fun TaskListContent(viewModel: ListViewModel, listId: String, listColor:
             onEdit = { viewingTask = null; editingTask = task })
     }
     deletingTask?.let { task ->
-        ConfirmDialog(
-            title = "Eliminar tarea",
-            message = "¿Eliminar \"${task.title}\"?",
+        ConfirmDialog(title = "Eliminar tarea", message = "¿Eliminar \"${task.title}\"?",
             onConfirm = { viewModel.deleteTask(task.id); deletingTask = null },
-            onDismiss = { deletingTask = null }
-        )
+            onDismiss = { deletingTask = null })
     }
 }
 
@@ -254,10 +225,8 @@ private fun TaskCard(
     onToggle: () -> Unit, onEdit: () -> Unit, onDelete: () -> Unit, onClick: () -> Unit
 ) {
     val priorityColor = priorityColor(task.priority)
-
     Card(
-        onClick = onClick,
-        shape = RoundedCornerShape(10.dp),
+        onClick = onClick, shape = RoundedCornerShape(10.dp),
         modifier = modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
             containerColor = when {
@@ -286,13 +255,10 @@ private fun TaskCard(
             }
             Spacer(Modifier.width(8.dp))
             Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    task.title, fontWeight = FontWeight.Medium, fontSize = 14.sp,
+                Text(task.title, fontWeight = FontWeight.Medium, fontSize = 14.sp,
                     textDecoration = if (task.isCompleted) TextDecoration.LineThrough else null,
-                    color = if (task.isCompleted)
-                        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
-                    else MaterialTheme.colorScheme.onSurface
-                )
+                    color = if (task.isCompleted) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
+                    else MaterialTheme.colorScheme.onSurface)
                 if (!task.description.isNullOrBlank()) {
                     Text(task.description, fontSize = 12.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
@@ -341,26 +307,22 @@ private fun TaskCard(
     }
 }
 
-private fun formatDueDateChip(dateStr: String): Pair<String, Color> {
-    return runCatching {
-        val date = LocalDate.parse(dateStr.take(10))
-        val today = LocalDate.now()
-        when {
-            date.isBefore(today) -> "Atrasada" to Color(0xFFEF4444)
-            date == today -> "Hoy" to Color(0xFFF97316)
-            date == today.plusDays(1) -> "Mañana" to Color(0xFF3B82F6)
-            else -> { val fmt = DateTimeFormatter.ofPattern("d MMM", Locale("es")); date.format(fmt) to Color(0xFF6B7280) }
-        }
-    }.getOrElse { "—" to Color(0xFF6B7280) }
-}
+private fun formatDueDateChip(dateStr: String): Pair<String, Color> = runCatching {
+    val date = LocalDate.parse(dateStr.take(10))
+    val today = LocalDate.now()
+    when {
+        date.isBefore(today) -> "Atrasada" to Color(0xFFEF4444)
+        date == today -> "Hoy" to Color(0xFFF97316)
+        date == today.plusDays(1) -> "Mañana" to Color(0xFF3B82F6)
+        else -> DateTimeFormatter.ofPattern("d MMM", Locale("es")).let { date.format(it) to Color(0xFF6B7280) }
+    }
+}.getOrElse { "—" to Color(0xFF6B7280) }
 
 @Composable
 private fun EmptyTaskList(listColor: Color, onAdd: () -> Unit) {
-    Column(
-        modifier = Modifier.fillMaxSize(),
+    Column(modifier = Modifier.fillMaxSize(),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
+        verticalArrangement = Arrangement.Center) {
         Icon(Icons.Outlined.CheckCircle, null, modifier = Modifier.size(52.dp),
             tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f))
         Spacer(Modifier.height(12.dp))
@@ -377,7 +339,6 @@ private fun EmptyTaskList(listColor: Color, onAdd: () -> Unit) {
 
 // ── Checklist ─────────────────────────────────────────────────────────────────
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ChecklistContent(viewModel: ListViewModel, listId: String, listColor: Color) {
     val items by viewModel.checklistItems.collectAsState()
@@ -389,14 +350,6 @@ private fun ChecklistContent(viewModel: ListViewModel, listId: String, listColor
 
     LaunchedEffect(listId) { viewModel.loadChecklistItems() }
 
-    val pullState = rememberPullToRefreshState()
-    LaunchedEffect(pullState.isRefreshing) {
-        if (pullState.isRefreshing) viewModel.loadChecklistItems()
-    }
-    LaunchedEffect(isLoading) {
-        if (!isLoading && pullState.isRefreshing) pullState.endRefresh()
-    }
-
     val pending = items.filter { !it.done }
     val completed = items.filter { it.done }
 
@@ -407,64 +360,57 @@ private fun ChecklistContent(viewModel: ListViewModel, listId: String, listColor
         return
     }
 
-    Box(Modifier.fillMaxSize().nestedScroll(pullState.nestedScrollConnection)) {
-        LazyColumn(
-            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(2.dp),
-            modifier = Modifier.fillMaxSize()
-        ) {
-            items(pending, key = { it.id }) { item ->
-                ChecklistRow(
-                    item = item, isEditing = editingItemId == item.id,
-                    editText = if (editingItemId == item.id) editingItemText else item.text,
-                    listColor = listColor,
-                    onToggle = { viewModel.toggleChecklistItem(item.id, item.done) },
-                    onDelete = { viewModel.deleteChecklistItem(item.id) },
-                    onStartEdit = { editingItemId = item.id; editingItemText = item.text },
-                    onEditChange = { editingItemText = it },
-                    onEditDone = {
-                        if (editingItemText.isNotBlank() && editingItemText != item.text)
-                            viewModel.updateChecklistItemText(item.id, editingItemText.trim())
-                        editingItemId = null
-                    },
-                    onEditCancel = { editingItemId = null }
-                )
-            }
-            item {
-                AddItemRow(value = newItemText, onValueChange = { newItemText = it },
-                    onDone = {
-                        if (newItemText.isNotBlank()) {
-                            viewModel.createChecklistItem(newItemText.trim())
-                            newItemText = ""
-                        }
-                    }, listColor = listColor)
-            }
-            if (completed.isNotEmpty()) {
-                item {
-                    Spacer(Modifier.height(4.dp))
-                    TextButton(onClick = { completedExpanded = !completedExpanded },
-                        contentPadding = PaddingValues(horizontal = 4.dp)) {
-                        Icon(if (completedExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                            null, modifier = Modifier.size(16.dp))
-                        Spacer(Modifier.width(4.dp))
-                        Text("${completed.size} completado${if (completed.size != 1) "s" else ""}",
-                            style = MaterialTheme.typography.bodySmall)
-                    }
-                }
-                if (completedExpanded) {
-                    items(completed, key = { it.id }) { item ->
-                        ChecklistRow(item = item, isEditing = false, editText = item.text,
-                            listColor = listColor,
-                            onToggle = { viewModel.toggleChecklistItem(item.id, item.done) },
-                            onDelete = { viewModel.deleteChecklistItem(item.id) },
-                            onStartEdit = {}, onEditChange = {}, onEditDone = {}, onEditCancel = {})
-                    }
-                }
-            }
-            item { Spacer(Modifier.height(32.dp)) }
+    LazyColumn(
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(2.dp),
+        modifier = Modifier.fillMaxSize()
+    ) {
+        items(pending, key = { it.id }) { item ->
+            ChecklistRow(item = item, isEditing = editingItemId == item.id,
+                editText = if (editingItemId == item.id) editingItemText else item.text,
+                listColor = listColor,
+                onToggle = { viewModel.toggleChecklistItem(item.id, item.done) },
+                onDelete = { viewModel.deleteChecklistItem(item.id) },
+                onStartEdit = { editingItemId = item.id; editingItemText = item.text },
+                onEditChange = { editingItemText = it },
+                onEditDone = {
+                    if (editingItemText.isNotBlank() && editingItemText != item.text)
+                        viewModel.updateChecklistItemText(item.id, editingItemText.trim())
+                    editingItemId = null
+                },
+                onEditCancel = { editingItemId = null })
         }
-        PullToRefreshContainer(state = pullState, modifier = Modifier.align(Alignment.TopCenter),
-            contentColor = listColor)
+        item {
+            AddItemRow(value = newItemText, onValueChange = { newItemText = it },
+                onDone = {
+                    if (newItemText.isNotBlank()) {
+                        viewModel.createChecklistItem(newItemText.trim()); newItemText = ""
+                    }
+                }, listColor = listColor)
+        }
+        if (completed.isNotEmpty()) {
+            item {
+                Spacer(Modifier.height(4.dp))
+                TextButton(onClick = { completedExpanded = !completedExpanded },
+                    contentPadding = PaddingValues(horizontal = 4.dp)) {
+                    Icon(if (completedExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                        null, modifier = Modifier.size(16.dp))
+                    Spacer(Modifier.width(4.dp))
+                    Text("${completed.size} completado${if (completed.size != 1) "s" else ""}",
+                        style = MaterialTheme.typography.bodySmall)
+                }
+            }
+            if (completedExpanded) {
+                items(completed, key = { it.id }) { item ->
+                    ChecklistRow(item = item, isEditing = false, editText = item.text,
+                        listColor = listColor,
+                        onToggle = { viewModel.toggleChecklistItem(item.id, item.done) },
+                        onDelete = { viewModel.deleteChecklistItem(item.id) },
+                        onStartEdit = {}, onEditChange = {}, onEditDone = {}, onEditCancel = {})
+                }
+            }
+        }
+        item { Spacer(Modifier.height(32.dp)) }
     }
 }
 

@@ -78,7 +78,8 @@ fun ToDoItApp() {
             if (showBottomBar) {
                 AppTopBar(
                     currentRoute = currentRoute ?: "",
-                    onSettingsClick = { showServerDialog = true }
+                    onSettingsClick = { showServerDialog = true },
+                    onRefreshClick = { appViewModel.loadLists() }
                 )
             }
         },
@@ -172,7 +173,11 @@ fun ToDoItApp() {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun AppTopBar(currentRoute: String, onSettingsClick: () -> Unit) {
+private fun AppTopBar(
+    currentRoute: String,
+    onSettingsClick: () -> Unit,
+    onRefreshClick: () -> Unit
+) {
     val title = when (currentRoute) {
         Screen.Board.route -> "ToDoIt"
         Screen.Stats.route -> "Estadísticas"
@@ -180,20 +185,19 @@ private fun AppTopBar(currentRoute: String, onSettingsClick: () -> Unit) {
     }
     TopAppBar(
         title = {
-            Text(
-                title,
-                fontWeight = FontWeight.Bold,
-                fontSize = 20.sp,
-                color = MaterialTheme.colorScheme.primary
-            )
+            Text(title, fontWeight = FontWeight.Bold, fontSize = 20.sp,
+                color = MaterialTheme.colorScheme.primary)
         },
         actions = {
+            if (currentRoute == Screen.Board.route) {
+                IconButton(onClick = onRefreshClick) {
+                    Icon(Icons.Default.Refresh, contentDescription = "Actualizar",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
             IconButton(onClick = onSettingsClick) {
-                Icon(
-                    Icons.Default.Settings,
-                    contentDescription = "Configuración del servidor",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                Icon(Icons.Default.Settings, contentDescription = "Configuración del servidor",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         },
         colors = TopAppBarDefaults.topAppBarColors(
