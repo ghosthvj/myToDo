@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import ConfirmDialog from '../ui/ConfirmDialog';
+import TaskDetailModal from './TaskDetailModal';
 import { format, isPast, isToday, isTomorrow } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Calendar, GripVertical, Pencil, Trash2 } from 'lucide-react';
@@ -28,6 +29,7 @@ function formatDueDate(dueDate: string) {
 
 export default function TaskCard({ task, listId, onEdit, draggable = false }: Props) {
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [detailOpen, setDetailOpen] = useState(false);
   const [completing, setCompleting] = useState(false);
   const toggleTask = useToggleTask();
   const deleteTask = useDeleteTask(listId);
@@ -100,7 +102,11 @@ export default function TaskCard({ task, listId, onEdit, draggable = false }: Pr
         />
       </div>
 
-      <div className="flex-1 min-w-0">
+      <button
+        type="button"
+        onClick={() => setDetailOpen(true)}
+        className="flex-1 min-w-0 text-left"
+      >
         <p
           className={`text-sm font-medium leading-snug ${
             isCompleted ? 'line-through text-gray-400 dark:text-gray-500' : 'text-gray-800 dark:text-gray-100'
@@ -134,7 +140,7 @@ export default function TaskCard({ task, listId, onEdit, draggable = false }: Pr
             </span>
           ))}
         </div>
-      </div>
+      </button>
 
       <div className="flex gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity flex-shrink-0">
         <button
@@ -160,6 +166,13 @@ export default function TaskCard({ task, listId, onEdit, draggable = false }: Pr
         confirmLabel="Eliminar"
         onConfirm={() => { setConfirmOpen(false); handleDelete(); }}
         onCancel={() => setConfirmOpen(false)}
+      />
+
+      <TaskDetailModal
+        open={detailOpen}
+        task={task}
+        onClose={() => setDetailOpen(false)}
+        onEdit={(t) => { setDetailOpen(false); onEdit(t); }}
       />
     </motion.div>
   );
