@@ -145,7 +145,7 @@ private fun TaskListContent(viewModel: ListViewModel, listId: String, listColor:
                         modifier = Modifier
                             .zIndex(dragState.zIndex(index))
                             .graphicsLayer { translationY = dragState.translationY(index) }
-                            .dragGestures(dragState) {
+                            .dragGestures(dragState, index) {
                                 viewModel.reorderTasks(localPending + completed)
                             },
                         onToggle = { viewModel.toggleTask(task.id) },

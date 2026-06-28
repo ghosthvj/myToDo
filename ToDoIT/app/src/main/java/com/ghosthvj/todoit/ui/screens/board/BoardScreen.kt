@@ -91,7 +91,7 @@ fun BoardScreen(
                             modifier = Modifier
                                 .zIndex(dragState.zIndex(index))
                                 .graphicsLayer { translationY = dragState.translationY(index) }
-                                .dragGestures(dragState) { appViewModel.reorderLists(localLists) },
+                                .dragGestures(dragState, index) { appViewModel.reorderLists(localLists) },
                             onClick = { onNavigateToList(list.id) },
                             onEdit = { editingList = list },
                             onDelete = { deletingList = list }

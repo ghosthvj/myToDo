@@ -4,7 +4,7 @@ import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.composed
 import androidx.compose.ui.input.pointer.pointerInput
 
 class DragDropState(
@@ -20,19 +20,14 @@ class DragDropState(
     fun translationY(index: Int) = if (draggingIndex == index) dragOffset else 0f
     fun zIndex(index: Int) = if (draggingIndex == index) 1f else 0f
 
-    fun onDragStart(offset: Offset) {
-        val scrollOffset = listState.firstVisibleItemScrollOffset
-        val adjusted = offset.y + scrollOffset - listState.layoutInfo.viewportStartOffset
-        listState.layoutInfo.visibleItemsInfo
-            .firstOrNull { adjusted.toInt() in it.offset..(it.offset + it.size) }
-            ?.also {
-                draggingIndex = it.index
-                dragOffset = 0f
-            }
+    /** The index is known from the item that owns the gesture modifier. */
+    fun onDragStart(index: Int) {
+        draggingIndex = index
+        dragOffset = 0f
     }
 
-    fun onDrag(offset: Offset) {
-        dragOffset += offset.y
+    fun onDrag(deltaY: Float) {
+        dragOffset += deltaY
         checkSwap()
     }
 
@@ -43,16 +38,22 @@ class DragDropState(
 
     private fun checkSwap() {
         val idx = draggingIndex ?: return
-        val item = listState.layoutInfo.visibleItemsInfo.firstOrNull { it.index == idx } ?: return
-        val center = item.offset + item.size / 2 + dragOffset.toInt()
+        val draggingItem = listState.layoutInfo.visibleItemsInfo
+            .firstOrNull { it.index == idx } ?: return
+
+        // Center of the dragged item in its current visual position
+        val draggingCenter = draggingItem.offset + draggingItem.size / 2 + dragOffset
+
         val target = listState.layoutInfo.visibleItemsInfo
-            .filter { it.index != idx }
-            .firstOrNull { center in it.offset..(it.offset + it.size) }
-        if (target != null) {
-            onSwap(idx, target.index)
-            dragOffset += item.offset - target.offset
-            draggingIndex = target.index
-        }
+            .firstOrNull { item ->
+                item.index != idx &&
+                    draggingCenter.toInt() in item.offset..(item.offset + item.size)
+            } ?: return
+
+        onSwap(idx, target.index)
+        // Compensate the offset so the dragged item stays under the finger
+        dragOffset += (draggingItem.offset - target.offset).toFloat()
+        draggingIndex = target.index
     }
 }
 
@@ -60,12 +61,30 @@ class DragDropState(
 fun rememberDragDropState(listState: LazyListState, onSwap: (Int, Int) -> Unit): DragDropState =
     remember(listState) { DragDropState(listState, onSwap) }
 
-fun Modifier.dragGestures(state: DragDropState, onDragEnd: () -> Unit): Modifier =
-    this.pointerInput(state) {
+/**
+ * Attach to each reorderable item. [index] is the item's current index in the list,
+ * so the drag always starts on the right element regardless of where it is touched.
+ *
+ * The gesture detector is keyed on [Unit] (not [index]) so an in-progress drag is not
+ * cancelled when a swap changes this item's index. The latest [index] and [onDragEnd]
+ * are read through [rememberUpdatedState] to avoid stale captures.
+ */
+fun Modifier.dragGestures(
+    state: DragDropState,
+    index: Int,
+    onDragEnd: () -> Unit
+): Modifier = composed {
+    val currentIndex by rememberUpdatedState(index)
+    val currentOnDragEnd by rememberUpdatedState(onDragEnd)
+    pointerInput(Unit) {
         detectDragGesturesAfterLongPress(
-            onDragStart = { offset -> state.onDragStart(offset) },
-            onDrag = { _, offset -> state.onDrag(offset) },
-            onDragEnd = { state.onDragEnd(); onDragEnd() },
+            onDragStart = { state.onDragStart(currentIndex) },
+            onDrag = { change, dragAmount ->
+                change.consume()
+                state.onDrag(dragAmount.y)
+            },
+            onDragEnd = { state.onDragEnd(); currentOnDragEnd() },
             onDragCancel = { state.onDragEnd() }
         )
     }
+}
