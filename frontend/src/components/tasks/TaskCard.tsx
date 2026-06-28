@@ -76,7 +76,7 @@ export default function TaskCard({ task, listId, onEdit, draggable = false }: Pr
         <div
           {...attributes}
           {...listeners}
-          className="mt-0.5 cursor-grab active:cursor-grabbing text-gray-300 hover:text-gray-500 transition-colors flex-shrink-0"
+          className="mt-0.5 cursor-grab active:cursor-grabbing text-gray-300 hover:text-gray-500 transition-colors flex-shrink-0 touch-none"
         >
           <GripVertical size={16} />
         </div>
@@ -125,7 +125,7 @@ export default function TaskCard({ task, listId, onEdit, draggable = false }: Pr
         </div>
       </div>
 
-      <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
+      <div className="flex gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity flex-shrink-0">
         <button
           onClick={() => onEdit(task)}
           className="p-1 rounded text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/40 transition-colors"
