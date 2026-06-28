@@ -3,10 +3,9 @@ import { Menu, Moon, Sun } from 'lucide-react';
 import { useUIStore } from '../../store/uiStore';
 import { useTaskLists } from '../../hooks/useTaskLists';
 import SortControls from '../tasks/SortControls';
-import AppIcon from '../ui/AppIcon';
 
 export default function Header() {
-  const { toggleSidebar, toggleDarkMode, darkMode } = useUIStore();
+  const { toggleSidebar, toggleDarkMode, darkMode, sidebarOpen } = useUIStore();
   const location = useLocation();
   const { id } = useParams<{ id: string }>();
   const { data: lists = [] } = useTaskLists();
@@ -15,13 +14,11 @@ export default function Header() {
   const currentList = lists.find((l) => l.id === id);
 
   function getTitle() {
-    if (location.pathname === '/board') return 'Pendientes';
+    if (location.pathname.startsWith('/board')) return 'Pendientes';
     if (location.pathname === '/stats') return 'Estadísticas';
-    if (currentList) return currentList.name;
+    if (isListView) return currentList?.name ?? '';
     return 'ToDoIt';
   }
-
-  const isHome = !currentList && location.pathname !== '/board' && location.pathname !== '/stats';
 
   return (
     <header className="h-14 flex items-center gap-2 px-4 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
@@ -32,12 +29,15 @@ export default function Header() {
         <Menu size={18} />
       </button>
 
-      <div className="flex items-center gap-2 flex-shrink-0">
-        {isHome && <AppIcon size={22} />}
+      <div className="flex items-center gap-2 flex-shrink-0 min-w-0">
         {currentList && (
-          <span className="w-3 h-3 rounded-full" style={{ backgroundColor: currentList.color }} />
+          <span className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: currentList.color }} />
         )}
-        <h2 className="font-semibold text-gray-800 dark:text-gray-100">{getTitle()}</h2>
+        {/* Show brand name with icon only when sidebar is hidden */}
+        {!sidebarOpen && !isListView && location.pathname !== '/board' && location.pathname !== '/stats' && (
+          <span className="font-bold text-indigo-600 dark:text-indigo-400">ToDoIt</span>
+        )}
+        <h2 className="font-semibold text-gray-800 dark:text-gray-100 truncate">{getTitle()}</h2>
       </div>
 
       {isListView && (
