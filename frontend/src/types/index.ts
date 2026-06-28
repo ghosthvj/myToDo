@@ -1,16 +1,28 @@
 export type Priority = 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
 export type TaskStatus = 'PENDING' | 'IN_PROGRESS' | 'COMPLETED';
+export type ListType = 'TASK' | 'CHECKLIST';
 
 export interface TaskList {
   id: string;
   name: string;
   color: string;
   icon?: string;
+  type: ListType;
   sortOrder: number;
   createdAt: string;
   updatedAt: string;
   tasks?: { id: string }[];
   _count?: { tasks: number };
+}
+
+export interface ChecklistItem {
+  id: string;
+  listId: string;
+  text: string;
+  done: boolean;
+  sortOrder: number;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface Task {

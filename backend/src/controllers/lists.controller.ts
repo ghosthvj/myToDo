@@ -23,10 +23,10 @@ export async function getLists(req: Request, res: Response, next: NextFunction) 
 
 export async function createList(req: Request, res: Response, next: NextFunction) {
   try {
-    const { name, color, icon } = req.body;
+    const { name, color, icon, type } = req.body;
     const count = await prisma.taskList.count();
     const list = await prisma.taskList.create({
-      data: { name, color: color || '#6366f1', icon, sortOrder: count },
+      data: { name, color: color || '#6366f1', icon, type: type || 'TASK', sortOrder: count },
     });
     res.status(201).json(list);
   } catch (err) {

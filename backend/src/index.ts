@@ -3,6 +3,7 @@ import cors from 'cors';
 import { listsRouter } from './routes/lists';
 import { tasksRouter } from './routes/tasks';
 import { statsRouter } from './routes/stats';
+import { checklistRouter } from './routes/checklist';
 import { errorHandler } from './middleware/errorHandler';
 
 const app = express();
@@ -22,6 +23,7 @@ app.use((req, res, next) => {
 app.use('/api/lists', listsRouter);
 app.use('/api/tasks', tasksRouter);
 app.use('/api/stats', statsRouter);
+app.use('/api/checklists/:listId/items', checklistRouter);
 
 app.use(errorHandler);
 

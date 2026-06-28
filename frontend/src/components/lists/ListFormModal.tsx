@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { X } from 'lucide-react';
+import { X, CheckSquare, LayoutList } from 'lucide-react';
 import { useCreateList, useUpdateList } from '../../hooks/useTaskLists';
 import { toast } from 'sonner';
-import type { TaskList } from '../../types';
+import type { TaskList, ListType } from '../../types';
 
 const PRESET_COLORS = [
   '#0d9488', '#8b5cf6', '#ec4899', '#ef4444',
@@ -20,6 +20,7 @@ interface Props {
 export default function ListFormModal({ open, onClose, editingList }: Props) {
   const [name, setName] = useState('');
   const [color, setColor] = useState('#0d9488');
+  const [listType, setListType] = useState<ListType>('TASK');
   const [nameError, setNameError] = useState('');
   const createList = useCreateList();
   const updateList = useUpdateList();
@@ -29,9 +30,11 @@ export default function ListFormModal({ open, onClose, editingList }: Props) {
       if (editingList) {
         setName(editingList.name);
         setColor(editingList.color);
+        setListType(editingList.type ?? 'TASK');
       } else {
         setName('');
         setColor('#0d9488');
+        setListType('TASK');
       }
       setNameError('');
     }
@@ -60,7 +63,7 @@ export default function ListFormModal({ open, onClose, editingList }: Props) {
       );
     } else {
       createList.mutate(
-        { name: name.trim(), color },
+        { name: name.trim(), color, type: listType },
         {
           onSuccess: () => {
             toast.success('Lista creada');
@@ -116,6 +119,42 @@ export default function ListFormModal({ open, onClose, editingList }: Props) {
               <p className="text-xs text-red-500 mt-1">{nameError}</p>
             )}
           </div>
+
+          {!editingList && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Tipo
+              </label>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setListType('TASK')}
+                  className={[
+                    'flex flex-col items-center gap-1.5 p-3 rounded-lg border-2 text-sm font-medium transition-colors',
+                    listType === 'TASK'
+                      ? 'border-teal-500 bg-teal-50 dark:bg-teal-900/20 text-teal-700 dark:text-teal-400'
+                      : 'border-gray-200 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:border-gray-300',
+                  ].join(' ')}
+                >
+                  <LayoutList size={20} />
+                  Lista de tareas
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setListType('CHECKLIST')}
+                  className={[
+                    'flex flex-col items-center gap-1.5 p-3 rounded-lg border-2 text-sm font-medium transition-colors',
+                    listType === 'CHECKLIST'
+                      ? 'border-teal-500 bg-teal-50 dark:bg-teal-900/20 text-teal-700 dark:text-teal-400'
+                      : 'border-gray-200 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:border-gray-300',
+                  ].join(' ')}
+                >
+                  <CheckSquare size={20} />
+                  Lista simple
+                </button>
+              </div>
+            </div>
+          )}
 
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">

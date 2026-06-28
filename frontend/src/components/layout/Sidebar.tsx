@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Columns3, Plus, Trash2, Pencil, Sun, Moon } from 'lucide-react';
+import { LayoutDashboard, Columns3, Plus, Trash2, Pencil, Sun, Moon, CheckSquare } from 'lucide-react';
 import AppIcon from '../ui/AppIcon';
 import { useTaskLists, useDeleteList } from '../../hooks/useTaskLists';
 import { useUIStore } from '../../store/uiStore';
@@ -142,10 +142,14 @@ export default function Sidebar() {
                   }`
                 }
               >
-                <span
-                  className="w-2.5 h-2.5 rounded-full flex-shrink-0"
-                  style={{ backgroundColor: list.color }}
-                />
+                {list.type === 'CHECKLIST' ? (
+                  <CheckSquare size={13} className="flex-shrink-0" style={{ color: list.color }} />
+                ) : (
+                  <span
+                    className="w-2.5 h-2.5 rounded-full flex-shrink-0"
+                    style={{ backgroundColor: list.color }}
+                  />
+                )}
                 <span className="flex-1 truncate">{list.name}</span>
                 {pending > 0 && (
                   <span className="text-xs text-gray-400 dark:text-gray-500 group-hover:hidden">
