@@ -56,7 +56,6 @@ dependencies {
     implementation(libs.retrofit.gson)
     implementation(libs.okhttp.logging)
     implementation(libs.kotlinx.coroutines.android)
-    implementation(libs.sh.calvin.reorderable)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

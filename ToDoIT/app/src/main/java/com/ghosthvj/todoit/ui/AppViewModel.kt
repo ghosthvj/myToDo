@@ -77,6 +77,18 @@ class AppViewModel : ViewModel() {
         }
     }
 
+    fun moveListUp(id: String) {
+        val idx = _lists.value.indexOfFirst { it.id == id }
+        if (idx <= 0) return
+        reorderLists(_lists.value.toMutableList().apply { add(idx - 1, removeAt(idx)) })
+    }
+
+    fun moveListDown(id: String) {
+        val idx = _lists.value.indexOfFirst { it.id == id }
+        if (idx < 0 || idx >= _lists.value.size - 1) return
+        reorderLists(_lists.value.toMutableList().apply { add(idx + 1, removeAt(idx)) })
+    }
+
     fun reorderLists(reordered: List<TaskList>) {
         val updated = reordered.mapIndexed { i, l -> l.copy(sortOrder = i) }
         _lists.value = updated

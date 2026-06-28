@@ -77,6 +77,22 @@ class ListViewModel(val listId: String) : ViewModel() {
         }
     }
 
+    fun moveTaskUp(id: String) {
+        val pending = _tasks.value.filter { !it.isCompleted }
+        val idx = pending.indexOfFirst { it.id == id }
+        if (idx <= 0) return
+        val newPending = pending.toMutableList().apply { add(idx - 1, removeAt(idx)) }
+        reorderTasks(newPending + _tasks.value.filter { it.isCompleted })
+    }
+
+    fun moveTaskDown(id: String) {
+        val pending = _tasks.value.filter { !it.isCompleted }
+        val idx = pending.indexOfFirst { it.id == id }
+        if (idx < 0 || idx >= pending.size - 1) return
+        val newPending = pending.toMutableList().apply { add(idx + 1, removeAt(idx)) }
+        reorderTasks(newPending + _tasks.value.filter { it.isCompleted })
+    }
+
     fun reorderTasks(reordered: List<Task>) {
         _tasks.value = reordered
         viewModelScope.launch {
