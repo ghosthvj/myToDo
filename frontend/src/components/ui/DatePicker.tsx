@@ -52,7 +52,7 @@ export default function DatePicker({ value, onChange, placeholder = 'Seleccionar
   }
 
   const displayValue = selectedDate
-    ? format(selectedDate, "d 'de' MMMM 'de' yyyy", { locale: es })
+    ? format(selectedDate, 'dd/MM/yy')
     : '';
 
   return (
