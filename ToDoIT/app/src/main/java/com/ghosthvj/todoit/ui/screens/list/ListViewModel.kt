@@ -77,6 +77,19 @@ class ListViewModel(val listId: String) : ViewModel() {
         }
     }
 
+    fun reorderTasks(reordered: List<Task>) {
+        _tasks.value = reordered
+        viewModelScope.launch {
+            try {
+                RetrofitClient.apiService.reorderTasks(
+                    ReorderTasksRequest(reordered.mapIndexed { i, t -> TaskReorderItem(t.id, i) })
+                )
+            } catch (_: Exception) {
+                loadTasks()
+            }
+        }
+    }
+
     fun deleteTask(id: String) {
         viewModelScope.launch {
             try {

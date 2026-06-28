@@ -1,9 +1,11 @@
 package com.ghosthvj.todoit.ui.screens.list
 
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
@@ -16,6 +18,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
@@ -29,6 +32,8 @@ import com.ghosthvj.todoit.data.model.ChecklistItem
 import com.ghosthvj.todoit.data.model.Task
 import com.ghosthvj.todoit.data.model.TaskList
 import com.ghosthvj.todoit.ui.components.*
+import sh.calvin.reorderable.ReorderableItem
+import sh.calvin.reorderable.rememberReorderableLazyListState
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -62,12 +67,7 @@ fun ListScreen(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Box(
-                            modifier = Modifier
-                                .size(10.dp)
-                                .clip(CircleShape)
-                                .background(listColor)
-                        )
+                        Box(modifier = Modifier.size(10.dp).clip(CircleShape).background(listColor))
                         Text(list?.name ?: "", fontWeight = FontWeight.SemiBold)
                     }
                 },
@@ -82,21 +82,13 @@ fun ListScreen(
             )
         }
     ) { padding ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-        ) {
+        Box(modifier = Modifier.fillMaxSize().padding(padding)) {
             when (list?.type) {
                 "CHECKLIST" -> ChecklistContent(
-                    viewModel = viewModel,
-                    listId = listId,
-                    listColor = listColor
+                    viewModel = viewModel, listId = listId, listColor = listColor
                 )
                 else -> TaskListContent(
-                    viewModel = viewModel,
-                    listId = listId,
-                    listColor = listColor
+                    viewModel = viewModel, listId = listId, listColor = listColor
                 )
             }
         }
@@ -105,6 +97,7 @@ fun ListScreen(
 
 // ── Task list ─────────────────────────────────────────────────────────────────
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun TaskListContent(
     viewModel: ListViewModel,
@@ -125,58 +118,90 @@ private fun TaskListContent(
     val pending = tasks.filter { !it.isCompleted }
     val completed = tasks.filter { it.isCompleted }
 
+    // Local pending list for drag reordering
+    var localPending by remember { mutableStateOf(pending) }
+    LaunchedEffect(pending) { localPending = pending }
+
+    val lazyListState = rememberLazyListState()
+    val reorderState = rememberReorderableLazyListState(lazyListState) { from, to ->
+        localPending = localPending.toMutableList().apply { add(to.index, removeAt(from.index)) }
+    }
+    LaunchedEffect(reorderState.isAnyItemDragging) {
+        if (!reorderState.isAnyItemDragging && localPending != pending) {
+            viewModel.reorderTasks(localPending + completed)
+        }
+    }
+
     Box(Modifier.fillMaxSize()) {
-        when {
-            isLoading && tasks.isEmpty() -> CircularProgressIndicator(
-                modifier = Modifier.align(Alignment.Center),
-                color = listColor
-            )
-            tasks.isEmpty() -> EmptyTaskList(listColor = listColor, onAdd = { showAddTask = true })
-            else -> LazyColumn(
-                contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 96.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                items(pending, key = { it.id }) { task ->
-                    TaskCard(
-                        task = task,
-                        listColor = listColor,
-                        onToggle = { viewModel.toggleTask(task.id) },
-                        onEdit = { editingTask = task },
-                        onDelete = { deletingTask = task },
-                        onClick = { viewingTask = task }
-                    )
-                }
+        PullToRefreshBox(
+            isRefreshing = isLoading,
+            onRefresh = { viewModel.loadTasks() },
+            modifier = Modifier.fillMaxSize()
+        ) {
+            when {
+                !isLoading && tasks.isEmpty() ->
+                    EmptyTaskList(listColor = listColor, onAdd = { showAddTask = true })
 
-                // Completed section header
-                if (completed.isNotEmpty()) {
-                    item {
-                        TextButton(
-                            onClick = { completedExpanded = !completedExpanded },
-                            contentPadding = PaddingValues(horizontal = 4.dp)
-                        ) {
-                            Icon(
-                                if (completedExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                                null,
-                                modifier = Modifier.size(16.dp)
+                else -> LazyColumn(
+                    state = lazyListState,
+                    contentPadding = PaddingValues(
+                        start = 16.dp, end = 16.dp, top = 8.dp, bottom = 96.dp
+                    ),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxSize()
+                ) {
+                    // Pending tasks — reorderable
+                    items(localPending, key = { it.id }) { task ->
+                        ReorderableItem(reorderState, key = task.id) { isDragging ->
+                            val elev by animateDpAsState(
+                                if (isDragging) 6.dp else 0.dp, label = "task_elev"
                             )
-                            Spacer(Modifier.width(4.dp))
-                            Text(
-                                "${completed.size} completada${if (completed.size != 1) "s" else ""}",
-                                style = MaterialTheme.typography.bodySmall
-                            )
-                        }
-                    }
-
-                    if (completedExpanded) {
-                        items(completed, key = { it.id }) { task ->
                             TaskCard(
                                 task = task,
                                 listColor = listColor,
+                                isDragging = isDragging,
+                                elevation = elev,
+                                dragHandleModifier = Modifier.draggableHandle(),
                                 onToggle = { viewModel.toggleTask(task.id) },
                                 onEdit = { editingTask = task },
                                 onDelete = { deletingTask = task },
                                 onClick = { viewingTask = task }
                             )
+                        }
+                    }
+
+                    // Completed section
+                    if (completed.isNotEmpty()) {
+                        item {
+                            TextButton(
+                                onClick = { completedExpanded = !completedExpanded },
+                                contentPadding = PaddingValues(horizontal = 4.dp)
+                            ) {
+                                Icon(
+                                    if (completedExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                                    null, modifier = Modifier.size(16.dp)
+                                )
+                                Spacer(Modifier.width(4.dp))
+                                Text(
+                                    "${completed.size} completada${if (completed.size != 1) "s" else ""}",
+                                    style = MaterialTheme.typography.bodySmall
+                                )
+                            }
+                        }
+                        if (completedExpanded) {
+                            items(completed, key = { "done_${it.id}" }) { task ->
+                                TaskCard(
+                                    task = task,
+                                    listColor = listColor,
+                                    isDragging = false,
+                                    elevation = 0.dp,
+                                    dragHandleModifier = Modifier,
+                                    onToggle = { viewModel.toggleTask(task.id) },
+                                    onEdit = { editingTask = task },
+                                    onDelete = { deletingTask = task },
+                                    onClick = { viewingTask = task }
+                                )
+                            }
                         }
                     }
                 }
@@ -185,9 +210,7 @@ private fun TaskListContent(
 
         ExtendedFloatingActionButton(
             onClick = { showAddTask = true },
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(16.dp),
+            modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp),
             containerColor = listColor,
             contentColor = Color.White
         ) {
@@ -202,44 +225,33 @@ private fun TaskListContent(
             onDismiss = { showAddTask = false },
             onSave = { data ->
                 viewModel.createTask(
-                    data.title,
-                    data.description.ifBlank { null },
-                    data.priority,
-                    data.dueDate,
-                    data.tags
+                    data.title, data.description.ifBlank { null },
+                    data.priority, data.dueDate, data.tags
                 )
             }
         )
     }
-
     editingTask?.let { task ->
         TaskFormDialog(
             editingTask = task,
             onDismiss = { editingTask = null },
             onSave = { data ->
                 viewModel.updateTask(
-                    task.id,
-                    data.title,
-                    data.description.ifBlank { null },
-                    data.priority,
-                    data.dueDate,
-                    data.tags
+                    task.id, data.title, data.description.ifBlank { null },
+                    data.priority, data.dueDate, data.tags
                 )
                 editingTask = null
             }
         )
     }
-
     viewingTask?.let { task ->
         TaskDetailDialog(
-            task = task,
-            listColor = listColor,
+            task = task, listColor = listColor,
             onDismiss = { viewingTask = null },
             onToggle = { viewModel.toggleTask(task.id); viewingTask = null },
             onEdit = { viewingTask = null; editingTask = task }
         )
     }
-
     deletingTask?.let { task ->
         ConfirmDialog(
             title = "Eliminar tarea",
@@ -254,6 +266,9 @@ private fun TaskListContent(
 private fun TaskCard(
     task: Task,
     listColor: Color,
+    isDragging: Boolean,
+    elevation: androidx.compose.ui.unit.Dp,
+    dragHandleModifier: Modifier,
     onToggle: () -> Unit,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
@@ -264,20 +279,33 @@ private fun TaskCard(
     Card(
         onClick = onClick,
         shape = RoundedCornerShape(10.dp),
-        elevation = CardDefaults.cardElevation(1.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .shadow(elevation, RoundedCornerShape(10.dp)),
         colors = CardDefaults.cardColors(
-            containerColor = if (task.isCompleted)
-                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-            else
-                MaterialTheme.colorScheme.surface
-        )
+            containerColor = when {
+                isDragging -> MaterialTheme.colorScheme.surfaceVariant
+                task.isCompleted -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                else -> MaterialTheme.colorScheme.surface
+            }
+        ),
+        elevation = CardDefaults.cardElevation(0.dp)
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(12.dp),
+            modifier = Modifier.fillMaxWidth().padding(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
+            // Drag handle (only for pending tasks)
+            if (!task.isCompleted) {
+                Icon(
+                    Icons.Default.DragHandle,
+                    contentDescription = "Reordenar",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.35f),
+                    modifier = dragHandleModifier.size(20.dp)
+                )
+                Spacer(Modifier.width(4.dp))
+            }
+
             IconButton(onClick = onToggle, modifier = Modifier.size(32.dp)) {
                 Icon(
                     if (task.isCompleted) Icons.Default.CheckCircle else Icons.Default.RadioButtonUnchecked,
@@ -297,10 +325,8 @@ private fun TaskCard(
                     textDecoration = if (task.isCompleted) TextDecoration.LineThrough else null,
                     color = if (task.isCompleted)
                         MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
-                    else
-                        MaterialTheme.colorScheme.onSurface
+                    else MaterialTheme.colorScheme.onSurface
                 )
-
                 if (!task.description.isNullOrBlank()) {
                     Text(
                         text = task.description,
@@ -309,7 +335,6 @@ private fun TaskCard(
                         maxLines = 1
                     )
                 }
-
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                     modifier = Modifier.padding(top = 4.dp)
@@ -321,28 +346,20 @@ private fun TaskCard(
                         Text(
                             priorityLabel(task.priority),
                             modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Medium,
-                            color = priorityColor
+                            fontSize = 11.sp, fontWeight = FontWeight.Medium, color = priorityColor
                         )
                     }
-
                     task.dueDate?.let { date ->
                         val (label, color) = formatDueDateChip(date)
-                        Surface(
-                            shape = RoundedCornerShape(4.dp),
-                            color = color.copy(alpha = 0.12f)
-                        ) {
+                        Surface(shape = RoundedCornerShape(4.dp), color = color.copy(alpha = 0.12f)) {
                             Text(
                                 label,
                                 modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                                fontSize = 11.sp,
-                                color = color
+                                fontSize = 11.sp, color = color
                             )
                         }
                     }
                 }
-
                 if (task.tagList.isNotEmpty()) {
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(4.dp),
@@ -369,9 +386,7 @@ private fun TaskCard(
             Box {
                 IconButton(onClick = { menuExpanded = true }, modifier = Modifier.size(32.dp)) {
                     Icon(
-                        Icons.Default.MoreVert,
-                        null,
-                        modifier = Modifier.size(16.dp),
+                        Icons.Default.MoreVert, null, modifier = Modifier.size(16.dp),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
@@ -384,12 +399,8 @@ private fun TaskCard(
                     DropdownMenuItem(
                         text = { Text("Eliminar", color = MaterialTheme.colorScheme.error) },
                         leadingIcon = {
-                            Icon(
-                                Icons.Default.Delete,
-                                null,
-                                tint = MaterialTheme.colorScheme.error,
-                                modifier = Modifier.size(16.dp)
-                            )
+                            Icon(Icons.Default.Delete, null,
+                                tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(16.dp))
                         },
                         onClick = { menuExpanded = false; onDelete() }
                     )
@@ -423,22 +434,14 @@ private fun EmptyTaskList(listColor: Color, onAdd: () -> Unit) {
         verticalArrangement = Arrangement.Center
     ) {
         Icon(
-            Icons.Outlined.CheckCircle,
-            null,
-            modifier = Modifier.size(52.dp),
+            Icons.Outlined.CheckCircle, null, modifier = Modifier.size(52.dp),
             tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
         )
         Spacer(Modifier.height(12.dp))
-        Text(
-            "Sin tareas",
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
+        Text("Sin tareas", style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(Modifier.height(20.dp))
-        Button(
-            onClick = onAdd,
-            colors = ButtonDefaults.buttonColors(containerColor = listColor)
-        ) {
+        Button(onClick = onAdd, colors = ButtonDefaults.buttonColors(containerColor = listColor)) {
             Icon(Icons.Default.Add, null, modifier = Modifier.size(16.dp))
             Spacer(Modifier.width(6.dp))
             Text("Añadir tarea")
@@ -448,6 +451,7 @@ private fun EmptyTaskList(listColor: Color, onAdd: () -> Unit) {
 
 // ── Checklist ─────────────────────────────────────────────────────────────────
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ChecklistContent(
     viewModel: ListViewModel,
@@ -474,84 +478,82 @@ private fun ChecklistContent(
         return
     }
 
-    LazyColumn(
-        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
-        verticalArrangement = Arrangement.spacedBy(2.dp)
+    PullToRefreshBox(
+        isRefreshing = isLoading,
+        onRefresh = { viewModel.loadChecklistItems() },
+        modifier = Modifier.fillMaxSize()
     ) {
-        items(pending, key = { it.id }) { item ->
-            ChecklistRow(
-                item = item,
-                isEditing = editingItemId == item.id,
-                editText = if (editingItemId == item.id) editingItemText else item.text,
-                listColor = listColor,
-                onToggle = { viewModel.toggleChecklistItem(item.id, item.done) },
-                onDelete = { viewModel.deleteChecklistItem(item.id) },
-                onStartEdit = { editingItemId = item.id; editingItemText = item.text },
-                onEditChange = { editingItemText = it },
-                onEditDone = {
-                    if (editingItemText.isNotBlank() && editingItemText != item.text) {
-                        viewModel.updateChecklistItemText(item.id, editingItemText.trim())
-                    }
-                    editingItemId = null
-                },
-                onEditCancel = { editingItemId = null }
-            )
-        }
+        LazyColumn(
+            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(2.dp),
+            modifier = Modifier.fillMaxSize()
+        ) {
+            items(pending, key = { it.id }) { item ->
+                ChecklistRow(
+                    item = item,
+                    isEditing = editingItemId == item.id,
+                    editText = if (editingItemId == item.id) editingItemText else item.text,
+                    listColor = listColor,
+                    onToggle = { viewModel.toggleChecklistItem(item.id, item.done) },
+                    onDelete = { viewModel.deleteChecklistItem(item.id) },
+                    onStartEdit = { editingItemId = item.id; editingItemText = item.text },
+                    onEditChange = { editingItemText = it },
+                    onEditDone = {
+                        if (editingItemText.isNotBlank() && editingItemText != item.text)
+                            viewModel.updateChecklistItemText(item.id, editingItemText.trim())
+                        editingItemId = null
+                    },
+                    onEditCancel = { editingItemId = null }
+                )
+            }
 
-        // Add item row
-        item {
-            AddItemRow(
-                value = newItemText,
-                onValueChange = { newItemText = it },
-                onDone = {
-                    if (newItemText.isNotBlank()) {
-                        viewModel.createChecklistItem(newItemText.trim())
-                        newItemText = ""
-                    }
-                },
-                listColor = listColor
-            )
-        }
-
-        if (completed.isNotEmpty()) {
             item {
-                Spacer(Modifier.height(4.dp))
-                TextButton(
-                    onClick = { completedExpanded = !completedExpanded },
-                    contentPadding = PaddingValues(horizontal = 4.dp)
-                ) {
-                    Icon(
-                        if (completedExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                        null,
-                        modifier = Modifier.size(16.dp)
-                    )
-                    Spacer(Modifier.width(4.dp))
-                    Text(
-                        "${completed.size} elemento${if (completed.size != 1) "s" else ""} completado${if (completed.size != 1) "s" else ""}",
-                        style = MaterialTheme.typography.bodySmall
-                    )
+                AddItemRow(
+                    value = newItemText,
+                    onValueChange = { newItemText = it },
+                    onDone = {
+                        if (newItemText.isNotBlank()) {
+                            viewModel.createChecklistItem(newItemText.trim())
+                            newItemText = ""
+                        }
+                    },
+                    listColor = listColor
+                )
+            }
+
+            if (completed.isNotEmpty()) {
+                item {
+                    Spacer(Modifier.height(4.dp))
+                    TextButton(
+                        onClick = { completedExpanded = !completedExpanded },
+                        contentPadding = PaddingValues(horizontal = 4.dp)
+                    ) {
+                        Icon(
+                            if (completedExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                            null, modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(Modifier.width(4.dp))
+                        Text(
+                            "${completed.size} completado${if (completed.size != 1) "s" else ""}",
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+                }
+                if (completedExpanded) {
+                    items(completed, key = { it.id }) { item ->
+                        ChecklistRow(
+                            item = item, isEditing = false, editText = item.text,
+                            listColor = listColor,
+                            onToggle = { viewModel.toggleChecklistItem(item.id, item.done) },
+                            onDelete = { viewModel.deleteChecklistItem(item.id) },
+                            onStartEdit = {}, onEditChange = {}, onEditDone = {}, onEditCancel = {}
+                        )
+                    }
                 }
             }
 
-            if (completedExpanded) {
-                items(completed, key = { it.id }) { item ->
-                    ChecklistRow(
-                        item = item,
-                        isEditing = false,
-                        editText = item.text,
-                        listColor = listColor,
-                        onToggle = { viewModel.toggleChecklistItem(item.id, item.done) },
-                        onDelete = { viewModel.deleteChecklistItem(item.id) },
-                        onStartEdit = {},
-                        onEditChange = {},
-                        onEditDone = {},
-                        onEditCancel = {}
-                    )
-                }
-            }
+            item { Spacer(Modifier.height(32.dp)) }
         }
-
-        item { Spacer(Modifier.height(32.dp)) }
     }
 }
 
@@ -563,30 +565,22 @@ private fun AddItemRow(
     listColor: Color
 ) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 2.dp),
+        modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(
-            Icons.Default.Add,
-            null,
-            modifier = Modifier
-                .padding(start = 4.dp, end = 8.dp)
-                .size(20.dp),
+            Icons.Default.Add, null,
+            modifier = Modifier.padding(start = 4.dp, end = 8.dp).size(20.dp),
             tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
         )
         OutlinedTextField(
-            value = value,
-            onValueChange = onValueChange,
+            value = value, onValueChange = onValueChange,
             modifier = Modifier.weight(1f),
             singleLine = true,
             placeholder = {
-                Text(
-                    "Elemento de lista",
+                Text("Elemento de lista",
                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-                    fontSize = 14.sp
-                )
+                    fontSize = 14.sp)
             },
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
             keyboardActions = KeyboardActions(onDone = { onDone() }),
@@ -614,57 +608,42 @@ private fun ChecklistRow(
     onEditCancel: () -> Unit
 ) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 2.dp),
+        modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         IconButton(onClick = onToggle, modifier = Modifier.size(36.dp)) {
             Icon(
                 if (item.done) Icons.Default.CheckBox else Icons.Default.CheckBoxOutlineBlank,
-                contentDescription = null,
+                null,
                 tint = if (item.done) listColor else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
                 modifier = Modifier.size(20.dp)
             )
         }
-
         if (isEditing) {
-            val focusRequester = remember { FocusRequester() }
+            val fr = remember { FocusRequester() }
             OutlinedTextField(
-                value = editText,
-                onValueChange = onEditChange,
-                modifier = Modifier
-                    .weight(1f)
-                    .focusRequester(focusRequester),
+                value = editText, onValueChange = onEditChange,
+                modifier = Modifier.weight(1f).focusRequester(fr),
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-                keyboardActions = KeyboardActions(
-                    onDone = { onEditDone() }
-                ),
+                keyboardActions = KeyboardActions(onDone = { onEditDone() }),
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = listColor,
-                    cursorColor = listColor
+                    focusedBorderColor = listColor, cursorColor = listColor
                 ),
                 textStyle = MaterialTheme.typography.bodyMedium
             )
-            LaunchedEffect(Unit) { focusRequester.requestFocus() }
+            LaunchedEffect(Unit) { fr.requestFocus() }
         } else {
             Text(
-                text = item.text,
-                modifier = Modifier.weight(1f),
-                fontSize = 14.sp,
+                text = item.text, modifier = Modifier.weight(1f), fontSize = 14.sp,
                 textDecoration = if (item.done) TextDecoration.LineThrough else null,
-                color = if (item.done)
-                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
-                else
-                    MaterialTheme.colorScheme.onSurface
+                color = if (item.done) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
+                else MaterialTheme.colorScheme.onSurface
             )
         }
-
         IconButton(onClick = onDelete, modifier = Modifier.size(32.dp)) {
             Icon(
-                Icons.Default.Close,
-                contentDescription = "Eliminar",
+                Icons.Default.Close, null,
                 tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
                 modifier = Modifier.size(16.dp)
             )

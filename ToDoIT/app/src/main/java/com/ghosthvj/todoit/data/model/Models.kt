@@ -83,7 +83,7 @@ data class ActivityDay(
 
 // Request bodies
 data class CreateListRequest(val name: String, val color: String, val type: String, val icon: String? = null)
-data class UpdateListRequest(val name: String? = null, val color: String? = null)
+data class UpdateListRequest(val name: String? = null, val color: String? = null, val sortOrder: Int? = null)
 data class CreateTaskRequest(
     val title: String,
     val description: String? = null,
@@ -101,3 +101,5 @@ data class UpdateTaskRequest(
 )
 data class CreateChecklistItemRequest(val text: String)
 data class UpdateChecklistItemRequest(val text: String? = null, val done: Boolean? = null)
+data class ReorderTasksRequest(val tasks: List<TaskReorderItem>)
+data class TaskReorderItem(val id: String, val manualOrder: Int)

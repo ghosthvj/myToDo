@@ -77,5 +77,19 @@ class AppViewModel : ViewModel() {
         }
     }
 
+    fun reorderLists(reordered: List<TaskList>) {
+        val updated = reordered.mapIndexed { i, l -> l.copy(sortOrder = i) }
+        _lists.value = updated
+        viewModelScope.launch {
+            try {
+                updated.forEach { list ->
+                    RetrofitClient.apiService.updateList(list.id, UpdateListRequest(sortOrder = list.sortOrder))
+                }
+            } catch (_: Exception) {
+                loadLists()
+            }
+        }
+    }
+
     fun clearError() { _error.value = null }
 }

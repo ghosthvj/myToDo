@@ -39,6 +39,9 @@ interface ApiService {
     @PATCH("api/tasks/{id}/toggle")
     suspend fun toggleTask(@Path("id") id: String): Task
 
+    @POST("api/tasks/reorder")
+    suspend fun reorderTasks(@Body request: ReorderTasksRequest)
+
     // Checklist items
     @GET("api/checklists/{listId}/items")
     suspend fun getChecklistItems(@Path("listId") listId: String): List<ChecklistItem>
