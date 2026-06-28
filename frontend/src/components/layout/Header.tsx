@@ -14,10 +14,10 @@ export default function Header() {
   const currentList = lists.find((l) => l.id === id);
 
   function getTitle() {
-    if (location.pathname === '/board') return 'Tablón de pendientes';
+    if (location.pathname === '/board') return 'Pendientes';
     if (location.pathname === '/stats') return 'Estadísticas';
     if (currentList) return currentList.name;
-    return 'TodoApp';
+    return 'ToDoApp';
   }
 
   return (

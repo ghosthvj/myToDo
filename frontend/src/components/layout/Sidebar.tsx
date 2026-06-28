@@ -76,7 +76,7 @@ export default function Sidebar() {
         ].join(' ')}
       >
         <div className="p-4 border-b border-gray-200 dark:border-gray-700">
-          <h1 className="text-xl font-bold text-indigo-600 dark:text-indigo-400">TodoApp</h1>
+          <h1 className="text-xl font-bold text-indigo-600 dark:text-indigo-400">ToDo-App</h1>
         </div>
 
         <nav className="p-3 space-y-1">
