@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import ConfirmDialog from '../ui/ConfirmDialog';
 import { format, isPast, isToday, isTomorrow } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Calendar, GripVertical, Pencil, Trash2 } from 'lucide-react';
@@ -26,7 +27,7 @@ function formatDueDate(dueDate: string) {
 }
 
 export default function TaskCard({ task, listId, onEdit, draggable = false }: Props) {
-  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
   const toggleTask = useToggleTask();
   const deleteTask = useDeleteTask(listId);
 
@@ -54,11 +55,6 @@ export default function TaskCard({ task, listId, onEdit, draggable = false }: Pr
   }
 
   function handleDelete() {
-    if (!confirmDelete) {
-      setConfirmDelete(true);
-      setTimeout(() => setConfirmDelete(false), 3000);
-      return;
-    }
     deleteTask.mutate(task.id, {
       onSuccess: () => toast.success('Tarea eliminada'),
     });
@@ -138,17 +134,22 @@ export default function TaskCard({ task, listId, onEdit, draggable = false }: Pr
           <Pencil size={13} />
         </button>
         <button
-          onClick={handleDelete}
-          className={`p-1 rounded transition-colors ${
-            confirmDelete
-              ? 'text-red-600 bg-red-50 dark:bg-red-900/40'
-              : 'text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/40'
-          }`}
-          title={confirmDelete ? 'Confirmar eliminación' : 'Eliminar'}
+          onClick={() => setConfirmOpen(true)}
+          className="p-1 rounded text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/40 transition-colors"
+          title="Eliminar"
         >
           <Trash2 size={13} />
         </button>
       </div>
+
+      <ConfirmDialog
+        open={confirmOpen}
+        title="Eliminar tarea"
+        message={`¿Eliminar "${task.title}"? Esta acción no se puede deshacer.`}
+        confirmLabel="Eliminar"
+        onConfirm={() => { setConfirmOpen(false); handleDelete(); }}
+        onCancel={() => setConfirmOpen(false)}
+      />
     </motion.div>
   );
 }
