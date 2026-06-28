@@ -3,6 +3,7 @@ import { Menu, Moon, Sun } from 'lucide-react';
 import { useUIStore } from '../../store/uiStore';
 import { useTaskLists } from '../../hooks/useTaskLists';
 import SortControls from '../tasks/SortControls';
+import AppIcon from '../ui/AppIcon';
 
 export default function Header() {
   const { toggleSidebar, toggleDarkMode, darkMode } = useUIStore();
@@ -17,8 +18,10 @@ export default function Header() {
     if (location.pathname === '/board') return 'Pendientes';
     if (location.pathname === '/stats') return 'Estadísticas';
     if (currentList) return currentList.name;
-    return 'ToDoApp';
+    return 'ToDoIt';
   }
+
+  const isHome = !currentList && location.pathname !== '/board' && location.pathname !== '/stats';
 
   return (
     <header className="h-14 flex items-center gap-2 px-4 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
@@ -30,20 +33,19 @@ export default function Header() {
       </button>
 
       <div className="flex items-center gap-2 flex-shrink-0">
+        {isHome && <AppIcon size={22} />}
         {currentList && (
           <span className="w-3 h-3 rounded-full" style={{ backgroundColor: currentList.color }} />
         )}
         <h2 className="font-semibold text-gray-800 dark:text-gray-100">{getTitle()}</h2>
       </div>
 
-      {/* Sort controls expand to fill the middle */}
       {isListView && (
         <div className="flex-1 flex justify-end">
           <SortControls />
         </div>
       )}
 
-      {/* Spacer when no sort controls */}
       {!isListView && <div className="flex-1" />}
 
       <button

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { LayoutDashboard, Columns3, Plus, Trash2, Pencil, Sun, Moon } from 'lucide-react';
+import AppIcon from '../ui/AppIcon';
 import { useTaskLists, useDeleteList } from '../../hooks/useTaskLists';
 import { useUIStore } from '../../store/uiStore';
 import ListFormModal from '../lists/ListFormModal';
@@ -75,8 +76,9 @@ export default function Sidebar() {
           !sidebarOpen ? 'md:hidden' : '',
         ].join(' ')}
       >
-        <div className="p-4 border-b border-gray-200 dark:border-gray-700">
-          <h1 className="text-xl font-bold text-indigo-600 dark:text-indigo-400">ToDo-App</h1>
+        <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center gap-2.5">
+          <AppIcon size={28} />
+          <h1 className="text-lg font-bold text-gray-900 dark:text-gray-100 tracking-tight">ToDoIt</h1>
         </div>
 
         <nav className="p-3 space-y-1">
