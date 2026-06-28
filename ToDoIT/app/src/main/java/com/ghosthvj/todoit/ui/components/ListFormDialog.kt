@@ -4,7 +4,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -22,9 +21,8 @@ import androidx.compose.ui.unit.sp
 import com.ghosthvj.todoit.data.model.TaskList
 
 private val PRESET_COLORS = listOf(
-    "#0d9488", "#8b5cf6", "#ec4899", "#ef4444",
-    "#f97316", "#eab308", "#22c55e", "#14b8a6",
-    "#3b82f6", "#64748b"
+    "#0d9488", "#8b5cf6", "#ec4899", "#ef4444", "#f97316",
+    "#eab308", "#22c55e", "#14b8a6", "#3b82f6", "#64748b"
 )
 
 fun parseColor(hex: String): Color {
@@ -35,7 +33,6 @@ fun parseColor(hex: String): Color {
     }
 }
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun ListFormDialog(
     editingList: TaskList? = null,
@@ -57,6 +54,7 @@ fun ListFormDialog(
         },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+
                 // Name field
                 OutlinedTextField(
                     value = name,
@@ -76,48 +74,51 @@ fun ListFormDialog(
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
                         TypeButton(
                             label = "Lista de tareas",
-                            icon = { Icon(Icons.Default.List, null, modifier = Modifier.size(20.dp)) },
+                            icon = Icons.Default.List,
                             selected = selectedType == "TASK",
+                            selectedColor = MaterialTheme.colorScheme.primary,
                             onClick = { selectedType = "TASK" },
                             modifier = Modifier.weight(1f)
                         )
                         TypeButton(
                             label = "Lista simple",
-                            icon = { Icon(Icons.Default.CheckBox, null, modifier = Modifier.size(20.dp)) },
+                            icon = Icons.Default.CheckBox,
                             selected = selectedType == "CHECKLIST",
+                            selectedColor = MaterialTheme.colorScheme.primary,
                             onClick = { selectedType = "CHECKLIST" },
                             modifier = Modifier.weight(1f)
                         )
                     }
                 }
 
-                // Color picker
+                // Color picker — two rows of 5
                 Text(
                     "Color",
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                FlowRow(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    PRESET_COLORS.forEach { colorHex ->
-                        val color = parseColor(colorHex)
-                        val isSelected = selectedColor == colorHex
-                        Box(
-                            modifier = Modifier
-                                .size(32.dp)
-                                .clip(CircleShape)
-                                .background(color)
-                                .then(
-                                    if (isSelected) Modifier.border(3.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f), CircleShape)
-                                    else Modifier
-                                )
-                                .clickable { selectedColor = colorHex }
-                        )
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        PRESET_COLORS.take(5).forEach { hex ->
+                            ColorDot(hex, selectedColor) { selectedColor = hex }
+                        }
+                    }
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        PRESET_COLORS.drop(5).forEach { hex ->
+                            ColorDot(hex, selectedColor) { selectedColor = hex }
+                        }
                     }
                 }
             }
@@ -125,14 +126,13 @@ fun ListFormDialog(
         confirmButton = {
             Button(
                 onClick = {
-                    if (name.isBlank()) {
-                        nameError = true
-                        return@Button
-                    }
+                    if (name.isBlank()) { nameError = true; return@Button }
                     onSave(name.trim(), selectedColor, selectedType)
                     onDismiss()
                 },
-                colors = ButtonDefaults.buttonColors(containerColor = parseColor(selectedColor))
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = parseColor(selectedColor)
+                )
             ) {
                 Text(if (editingList != null) "Guardar" else "Crear lista")
             }
@@ -144,33 +144,58 @@ fun ListFormDialog(
 }
 
 @Composable
+private fun RowScope.ColorDot(hex: String, selectedHex: String, onClick: () -> Unit) {
+    val color = parseColor(hex)
+    val isSelected = hex == selectedHex
+    Box(
+        modifier = Modifier
+            .weight(1f)
+            .aspectRatio(1f)
+            .clip(CircleShape)
+            .background(color)
+            .then(
+                if (isSelected) Modifier.border(3.dp, Color.White, CircleShape)
+                else Modifier
+            )
+            .clickable(onClick = onClick)
+    )
+}
+
+@Composable
 private fun TypeButton(
     label: String,
-    icon: @Composable () -> Unit,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
     selected: Boolean,
+    selectedColor: Color,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val borderColor = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline
-    val bgColor = if (selected) MaterialTheme.colorScheme.primaryContainer else Color.Transparent
-    val contentColor = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+    val borderColor = if (selected) selectedColor else MaterialTheme.colorScheme.outline
+    val bgColor = if (selected) selectedColor.copy(alpha = 0.1f) else MaterialTheme.colorScheme.surface
+    val contentColor = if (selected) selectedColor else MaterialTheme.colorScheme.onSurfaceVariant
+    val borderWidth = if (selected) 2.dp else 1.dp
 
-    Surface(
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(4.dp),
         modifier = modifier
             .clip(RoundedCornerShape(10.dp))
-            .border(if (selected) 2.dp else 1.dp, borderColor, RoundedCornerShape(10.dp))
-            .clickable(onClick = onClick),
-        color = bgColor
+            .background(bgColor)
+            .border(borderWidth, borderColor, RoundedCornerShape(10.dp))
+            .clickable(onClick = onClick)
+            .padding(12.dp)
     ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(4.dp),
-            modifier = Modifier.padding(12.dp)
-        ) {
-            CompositionLocalProvider(LocalContentColor provides contentColor) {
-                icon()
-                Text(label, fontSize = 12.sp, fontWeight = FontWeight.Medium, color = contentColor)
-            }
-        }
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = contentColor,
+            modifier = Modifier.size(20.dp)
+        )
+        Text(
+            text = label,
+            fontSize = 12.sp,
+            fontWeight = FontWeight.Medium,
+            color = contentColor
+        )
     }
 }
