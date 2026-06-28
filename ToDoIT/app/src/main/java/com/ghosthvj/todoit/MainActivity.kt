@@ -1,32 +1,39 @@
 package com.ghosthvj.todoit
 
+import android.content.Context
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.List
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.outlined.BarChart
 import androidx.compose.material.icons.outlined.List
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavType
 import androidx.navigation.compose.*
 import androidx.navigation.navArgument
+import com.ghosthvj.todoit.data.api.RetrofitClient
 import com.ghosthvj.todoit.ui.AppViewModel
 import com.ghosthvj.todoit.ui.screens.board.BoardScreen
 import com.ghosthvj.todoit.ui.screens.list.ListScreen
 import com.ghosthvj.todoit.ui.screens.stats.StatsScreen
 import com.ghosthvj.todoit.ui.theme.ToDoITTheme
+
+private const val PREFS_NAME = "todoit_prefs"
+private const val KEY_SERVER_URL = "server_url"
+private const val DEFAULT_URL = "http://10.0.2.2:3000"
 
 sealed class Screen(val route: String) {
     data object Board : Screen("board")
@@ -39,6 +46,11 @@ sealed class Screen(val route: String) {
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // Load saved server URL before the first network call
+        val savedUrl = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            .getString(KEY_SERVER_URL, DEFAULT_URL) ?: DEFAULT_URL
+        RetrofitClient.updateBaseUrl(savedUrl)
+
         enableEdgeToEdge()
         setContent {
             ToDoITTheme {
@@ -55,15 +67,19 @@ fun ToDoItApp() {
     val appViewModel: AppViewModel = viewModel()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
-
     val bottomBarRoutes = listOf(Screen.Board.route, Screen.Stats.route)
     val showBottomBar = currentRoute in bottomBarRoutes
+
+    var showServerDialog by remember { mutableStateOf(false) }
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         topBar = {
             if (showBottomBar) {
-                AppTopBar(currentRoute = currentRoute ?: "")
+                AppTopBar(
+                    currentRoute = currentRoute ?: "",
+                    onSettingsClick = { showServerDialog = true }
+                )
             }
         },
         bottomBar = {
@@ -106,7 +122,9 @@ fun ToDoItApp() {
         NavHost(
             navController = navController,
             startDestination = Screen.Board.route,
-            modifier = Modifier.fillMaxSize().padding(padding)
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
         ) {
             composable(Screen.Board.route) {
                 BoardScreen(
@@ -134,11 +152,27 @@ fun ToDoItApp() {
             }
         }
     }
+
+    if (showServerDialog) {
+        ServerUrlDialog(
+            currentUrl = RetrofitClient.baseUrl.trimEnd('/'),
+            onDismiss = { showServerDialog = false },
+            onSave = { url, context ->
+                RetrofitClient.updateBaseUrl(url)
+                context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                    .edit()
+                    .putString(KEY_SERVER_URL, url)
+                    .apply()
+                appViewModel.loadLists()
+                showServerDialog = false
+            }
+        )
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun AppTopBar(currentRoute: String) {
+private fun AppTopBar(currentRoute: String, onSettingsClick: () -> Unit) {
     val title = when (currentRoute) {
         Screen.Board.route -> "ToDoIt"
         Screen.Stats.route -> "Estadísticas"
@@ -153,8 +187,65 @@ private fun AppTopBar(currentRoute: String) {
                 color = MaterialTheme.colorScheme.primary
             )
         },
+        actions = {
+            IconButton(onClick = onSettingsClick) {
+                Icon(
+                    Icons.Default.Settings,
+                    contentDescription = "Configuración del servidor",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        },
         colors = TopAppBarDefaults.topAppBarColors(
             containerColor = MaterialTheme.colorScheme.surface
         )
+    )
+}
+
+@Composable
+private fun ServerUrlDialog(
+    currentUrl: String,
+    onDismiss: () -> Unit,
+    onSave: (String, Context) -> Unit
+) {
+    var url by remember { mutableStateOf(currentUrl) }
+    var error by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Servidor", fontWeight = FontWeight.SemiBold) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(
+                    "Introduce la URL del backend. En emulador usa 10.0.2.2; en dispositivo físico usa la IP local de tu PC.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                OutlinedTextField(
+                    value = url,
+                    onValueChange = { url = it; error = false },
+                    label = { Text("URL del servidor") },
+                    placeholder = { Text("http://192.168.1.x:3000") },
+                    isError = error,
+                    supportingText = if (error) ({ Text("Introduce una URL válida (http://...)") }) else null,
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(10.dp)
+                )
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    val trimmed = url.trim()
+                    if (!trimmed.startsWith("http")) { error = true; return@Button }
+                    onSave(trimmed, context)
+                }
+            ) { Text("Guardar") }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Cancelar") }
+        }
     )
 }

@@ -6,24 +6,28 @@ import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 
 object RetrofitClient {
-    // Change this to your machine's IP if using a real device
-    // For emulator, 10.0.2.2 maps to the host's localhost
-    var baseUrl = "http://10.0.2.2:3000/"
-
-    private val logging = HttpLoggingInterceptor().apply {
-        level = HttpLoggingInterceptor.Level.BASIC
-    }
+    var baseUrl: String = "http://10.0.2.2:3000/"
+        private set
 
     private val okHttpClient = OkHttpClient.Builder()
-        .addInterceptor(logging)
+        .addInterceptor(HttpLoggingInterceptor().apply { level = HttpLoggingInterceptor.Level.BASIC })
         .build()
 
-    val apiService: ApiService by lazy {
+    private var _apiService: ApiService? = null
+
+    val apiService: ApiService
+        get() = _apiService ?: buildService().also { _apiService = it }
+
+    fun updateBaseUrl(url: String) {
+        baseUrl = url.trimEnd('/') + "/"
+        _apiService = buildService()
+    }
+
+    private fun buildService(): ApiService =
         Retrofit.Builder()
             .baseUrl(baseUrl)
             .client(okHttpClient)
             .addConverterFactory(GsonConverterFactory.create())
             .build()
             .create(ApiService::class.java)
-    }
 }
