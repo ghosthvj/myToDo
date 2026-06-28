@@ -21,6 +21,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavType
 import androidx.navigation.compose.*
+import androidx.navigation.navArgument
 import com.ghosthvj.todoit.ui.AppViewModel
 import com.ghosthvj.todoit.ui.screens.board.BoardScreen
 import com.ghosthvj.todoit.ui.screens.list.ListScreen
